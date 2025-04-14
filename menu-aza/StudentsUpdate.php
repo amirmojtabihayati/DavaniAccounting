@@ -10,8 +10,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 }
 
 $student_id = (int)$_GET['id'];
-$db = new class_db();
-$cnn = $db->connection_database();
+$cnn = (new class_db())->connection_database;
 
 // دریافت اطلاعات دانش‌آموز
 $stmt = $cnn->prepare("SELECT * FROM students WHERE id = ?");
