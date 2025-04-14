@@ -1,0 +1,346 @@
+/* --- General Styles --- */
+body {
+    font-family: 'Vazirmatn', sans-serif;
+    direction: rtl;
+    background-color: #f4f7f6;
+    color: #333;
+    line-height: 1.6;
+    margin: 0; /* حذف حاشیه پیش‌فرض */
+}
+
+.container {
+    max-width: 950px; /* عرض حداکثر برای خوانایی بهتر */
+    margin: 2rem auto; /* وسط‌چین کردن و فاصله از بالا/پایین */
+    padding: 2rem;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+h1#h1 {
+    text-align: center;
+    color: #2c3e50; /* آبی تیره */
+    margin-bottom: 2rem;
+    font-weight: 700;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: #555;
+    font-size: 0.95em;
+}
+
+/* --- Form Elements Styling --- */
+input[type="text"],
+input[type="number"],
+select.select,
+.ghest { /* شامل کلاس‌های ورودی اقساط */
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-sizing: border-box; /* مهم برای حفظ اندازه با پدینگ */
+    font-family: inherit; /* ارث‌بری فونت از body */
+    font-size: 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 1rem; /* فاصله پایین */
+}
+
+input:focus,
+select:focus {
+    border-color: #3498db; /* آبی روشن‌تر */
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+button {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+    margin-left: 0.5rem; /* فاصله دکمه‌ها از هم */
+}
+button:last-child {
+    margin-left: 0;
+}
+button:active {
+    transform: scale(0.97); /* افکت کلیک */
+}
+
+button:disabled {
+    background-color: #bdc3c7; /* خاکستری */
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Style specific buttons */
+#submit_btn, #generate_installments_btn {
+    background-color: #3498db; /* آبی */
+    color: white;
+}
+#submit_btn:hover, #generate_installments_btn:hover {
+    background-color: #2980b9; /* آبی تیره‌تر */
+}
+#searchForm button { /* دکمه جستجو */
+     background-color: #2ecc71; /* سبز */
+     color: white;
+}
+#searchForm button:hover {
+    background-color: #27ae60; /* سبز تیره‌تر */
+}
+
+#cancel_btn {
+    background-color: #e74c3c; /* قرمز */
+    color: white;
+}
+#cancel_btn:hover {
+    background-color: #c0392b; /* قرمز تیره‌تر */
+}
+.delete-all-container { /* دکمه حذف همه */
+    color: #c0392b;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 600;
+    transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+    padding: 5px;
+    border-radius: 4px;
+}
+.delete-all-container:hover {
+    color: #e74c3c;
+    background-color: #fdedec; /* پس‌زمینه قرمز خیلی روشن */
+}
+.delete-all-container img {
+    width: 16px;
+    height: 16px;
+    margin-left: 6px;
+}
+
+/* --- Layout Sections --- */
+
+/* Search Section */
+.jostojo {
+    display: flex;
+    align-items: center; /* تراز عمودی */
+    gap: 1rem; /* فاصله بین عناصر */
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background-color: #ecf0f1; /* پس زمینه کمی متفاوت */
+    border-radius: 5px;
+}
+.jostojo label {
+    margin-bottom: 0; /* حذف مارجین پایین لیبل */
+    flex-shrink: 0; /* جلوگیری از کوچک شدن لیبل */
+}
+.jostojo input {
+    flex-grow: 1; /* ورودی بیشترین فضا را بگیرد */
+    margin-bottom: 0; /* حذف مارجین پایین ورودی */
+}
+.jostojo button {
+    flex-shrink: 0; /* جلوگیری از کوچک شدن دکمه */
+}
+
+/* Student Info */
+.student-info {
+    background-color: #eaf4ff; /* آبی خیلی روشن */
+    padding: 1rem 1.5rem;
+    border-radius: 5px;
+    margin-bottom: 2rem;
+    border-right: 5px solid #3498db; /* نوار رنگی کنار */
+}
+.student-info label {
+    display: inline;
+    font-weight: bold;
+    margin-left: 8px;
+}
+.student-info span {
+    font-weight: normal;
+    color: #2c3e50;
+    margin-right: 15px; /* فاصله بین اطلاعات */
+}
+
+/* Main Form Controls (.item) */
+.item {
+    display: grid;
+    /* Grid Columns: Adjust minmax for desired minimum width */
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem 1.5rem; /* فاصله سطر و ستون */
+    align-items: end; /* تراز به پایین برای ظاهر مرتب‌تر */
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    margin-bottom: 2rem;
+    background-color: #fdfdfd; /* کمی متفاوت از پس زمینه اصلی */
+}
+.item > div { /* Wrap label+input groups if needed, or apply to direct children */
+    display: flex;
+    flex-direction: column; /* لیبل بالای ورودی */
+}
+.item label {
+    margin-bottom: 0.4rem;
+}
+.item input, .item select, .item span#debt_amount_display {
+    width: 100%;
+    margin-bottom: 0; /* حذف مارجین پایین عناصر داخل گرید */
+}
+.item span#debt_amount_display { /* نمایش مبلغ کل */
+    font-weight: bold;
+    font-size: 1.2em;
+    color: #e67e22; /* نارنجی */
+    padding: 10px 0; /* تراز عمودی حدودی */
+    min-height: 42px; /* هم‌قد با ورودی‌ها */
+    display: inline-block;
+}
+/* Radio buttons alignment */
+.item .radio-group {
+    grid-column: span 2; /* گرفتن فضای بیشتر در گرید (اختیاری) */
+    display: flex;
+    align-items: center;
+    padding-top: 10px; /* کمی فاصله از بالا */
+}
+.item .radio-group label {
+     display: inline-block;
+     margin-left: 15px;
+     margin-bottom: 0;
+     font-weight: normal;
+     cursor: pointer;
+ }
+.item .radio-group input[type="radio"] {
+    margin-left: 5px;
+    vertical-align: middle; /* تراز با متن */
+    width: auto; /* جلوگیری از عرض ۱۰۰٪ */
+    cursor: pointer;
+}
+.item button#generate_installments_btn {
+    grid-column: 1 / -1; /* گرفتن تمام عرض گرید */
+    justify-self: start; /* تراز دکمه به سمت راست (شروع) */
+    margin-top: 1rem;
+    min-width: 200px; /* حداقل عرض دکمه */
+}
+
+/* Installments Container */
+#installments_container {
+    margin-top: 2.5rem;
+    border-top: 2px solid #eee;
+    padding-top: 1.5rem;
+}
+
+/* Individual Installment Group */
+.installment-group {
+    border: 1px solid #e0e0e0;
+    border-radius: 5px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    background-color: #fff;
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+/* Alternating row colors for readability */
+.installment-group:nth-child(odd) {
+    background-color: #f9fafb; /* رنگ خیلی کم برای سطرهای فرد */
+}
+.installment-group:hover {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.07);
+    border-color: #cce7ff;
+}
+
+/* Layout within each installment row using Flexbox */
+.installment-group .date-amount {
+    display: flex;
+    align-items: flex-start; /* تراز به بالا */
+    gap: 1.5rem; /* فاصله بین شماره، بلوک تاریخ، بلوک مبلغ */
+    flex-wrap: wrap; /* اجازه شکستن در صورت کمبود فضا */
+}
+
+.installment-group .installment-number {
+    font-weight: bold;
+    color: #34495e; /* رنگ تیره‌تر */
+    padding-right: 12px;
+    border-right: 4px solid #3498db;
+    min-width: 70px; /* حداقل فضا برای شماره */
+    padding-top: 5px; /* تنظیم عمودی متن */
+    flex-shrink: 0; /* جلوگیری از کوچک شدن */
+}
+
+/* Wrapper for label+input for Date and Amount */
+.date-amount > div.input-wrapper {
+    flex: 1; /* هر بلوک تاریخ/مبلغ فضای مساوی بگیرد */
+    min-width: 200px; /* حداقل عرض برای هر بلوک */
+}
+.date-amount > div.input-wrapper label {
+     margin-bottom: 0.4rem;
+     font-size: 0.9em;
+     color: #666;
+}
+.date-amount > div.input-wrapper input {
+    margin-bottom: 0;
+}
+
+/* Read-only styling for amount */
+input.amount-input[readonly] {
+    background-color: #f0f0f0; /* خاکستری روشن */
+    cursor: default;
+    font-weight: bold;
+    color: #555;
+}
+
+/* Installment Summary Section */
+#installments_summary {
+    margin-top: 2rem;
+    padding: 1rem 1.5rem;
+    border-radius: 5px;
+    font-weight: bold;
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent; /* رنگ توسط استایل داخلی تعیین می‌شود */
+}
+#installments_summary span { display: block; } /* خطوط جدید کار کنند */
+#installments_summary span:first-child { margin-bottom: 0.5rem; } /* فاصله بین خط اصلی و پیام وضعیت */
+
+/* Styles matching JS logic for summary colors */
+#installments_summary.summary-match {
+    border-color: #2ecc71; background-color: #e8f8f5; color: #1abc9c;
+}
+#installments_summary.summary-mismatch {
+    border-color: #e74c3c; background-color: #fdedec; color: #c0392b;
+}
+#installments_summary.summary-invalid {
+    border-color: #f39c12; background-color: #fef9e7; color: #d35400;
+}
+
+/* Message Containers (Error/Success/Info) */
+.message-container {
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 5px;
+    border-right-width: 5px;
+    border-right-style: solid;
+    font-size: 0.95em;
+}
+.error-container { background-color: #fdedec; border-color: #e74c3c; color: #c0392b; }
+.success-container { background-color: #e8f8f5; border-color: #2ecc71; color: #1abc9c; }
+.info-container { background-color: #eaf4ff; border-color: #3498db; color: #2980b9; }
+.message-container div { margin-bottom: 0.5rem; }
+.message-container div:last-child { margin-bottom: 0; }
+
+/* Final Submit/Cancel Buttons Alignment */
+form > button#submit_btn, form > button#cancel_btn {
+     margin-top: 2.5rem;
+}
+
+/* --- Datepicker Adjustments (if needed) --- */
+/* Example: Ensure datepicker opens correctly */
+.pdp-container {
+    z-index: 1050 !important; /* Ensure it's above other elements */
+}
+.pdp-group input {
+    /* Styles for the input group of datepicker if needed */
+}

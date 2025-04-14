@@ -1,0 +1,18 @@
+/* استایل نمایش پیام های خطا و موفقیت */
+.error-message {
+    color: red;
+    border: 1px solid red;
+    background-color: #f9d6d5;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+.success-message {
+    color: green;
+    border: 1px solid green;
+    background-color: #d5f9d7;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 5px;
+}

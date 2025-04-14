@@ -1,0 +1,72 @@
+/* ==========================================================================
+   Footer Styles
+   ========================================================================== */
+
+   .site-footer {
+    background-color: #f8f9fa; /* یک خاکستری بسیار روشن */
+    color: #6c757d; /* رنگ متن خاکستری تیره */
+    padding: 1.5rem 2rem; /* پدینگ بالا/پایین و چپ/راست */
+    margin-top: 3rem; /* فاصله مناسب از محتوای اصلی */
+    border-top: 1px solid #dee2e6; /* یک خط جداکننده ظریف */
+    font-size: 0.9em; /* فونت کمی کوچک‌تر */
+    line-height: 1.6;
+}
+
+.footer-content {
+    max-width: 1200px; /* عرض محتوا مطابق با هدر و نوبار */
+    margin: 0 auto; /* وسط چین کردن */
+    display: flex;
+    justify-content: center; /* وسط چین کردن افقی */
+    align-items: center; /* وسط چین کردن عمودی */
+    text-align: center;
+    flex-wrap: wrap; /* اجازه شکستن خط در صورت نیاز */
+    gap: 0.5rem 1.5rem; /* فاصله بین آیتم‌ها (اگر چندتایی شوند) */
+}
+
+.footer-content p {
+    margin: 0; /* حذف مارجین پیش‌فرض پاراگراف */
+}
+
+/* استایل برای نسخه برنامه (اختیاری) */
+.app-version {
+    font-style: italic;
+    opacity: 0.8;
+    font-size: 0.9em; /* کمی کوچک‌تر */
+    /* margin-right: 1rem; */ /* فاصله از متن کپی‌رایت اگر در یک خط باشند */
+}
+
+/* استایل برای لینک‌های احتمالی در فوتر (اختیاری) */
+.footer-links {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.footer-links a {
+    color: #495057; /* رنگ لینک کمی تیره‌تر از متن اصلی */
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.footer-links a:hover {
+    color: #0d6efd; /* رنگ لینک هنگام هاور (مطابق با تم شما) */
+    text-decoration: underline;
+}
+
+.footer-links .link-separator {
+    color: #ced4da; /* رنگ جداکننده لینک‌ها */
+}
+
+/* --- استایل‌های مربوط به افکت اسکرول (اختیاری) --- */
+/* می‌توانید این استایل‌ها را به theme.css اضافه کنید */
+body.scrolled .site-header {
+    /* مثال: کمی سایه بیشتر وقتی اسکرول شده */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* می‌توانید افکت‌های دیگری نیز برای نوبار یا هدر هنگام اسکرول اضافه کنید */
+/*
+body.scrolled .main-navbar {
+    // style changes
+}
+*/

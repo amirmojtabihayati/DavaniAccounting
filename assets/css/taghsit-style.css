@@ -1,0 +1,144 @@
+.container-taghsit {
+    max-width: 50%;
+    margin: auto;
+    padding: 25px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 1px 1px 27px -1px;
+    background-color: whitesmoke;
+}
+
+body{
+    direction: rtl;
+}
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 30%;
+    margin: auto;
+    padding: 25px;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 1px 1px 27px -1px;
+    background-color: whitesmoke;
+}
+
+label {
+    display: block;
+    margin: 10px 0 5px;
+    color: #555;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+label {
+    display: block;
+    margin: 10px 0 5px;
+    color: #555;
+}
+
+input,
+select {
+    width: 95%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    outline: none;
+    background-color: rgba(255, 255, 255);
+    border: 1.5px solid #122e43;
+    border-style: solid;
+    font-size: 14px;
+    border-radius: 21px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+label {
+    display: block;
+    margin: 10px 0 5px;
+    color: #555;
+    font-size: 18px;
+}
+
+button {
+    width: 88%;
+    padding: 10px;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-bottom: 5px;
+    border-radius: 21px;
+    margin: 3px auto;
+}
+button[type="submit"]{
+    background-color: #265c7b
+}
+button[type="submit"]:hover{
+    background-color: #172c3a
+}
+
+button[type="button"] {
+    background-color: #f44336;
+}
+
+button[type="button"]:hover {
+
+    background-color: #e53935;
+}
+
+.image-preview img {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 50%;
+}
+
+.jostojo{
+    border: 1px dashed black;
+    padding: 25px;
+    margin-bottom: 30px;
+    width: 70%;
+}
+
+span{
+    font-size: 24px;
+}
+input,
+select >.item{
+   width: 35%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    outline: none;
+    background-color: rgba(255, 255, 255);
+    border: 1.5px solid #122e43;
+    border-style: solid;
+    font-size: 16px;
+    border-radius: 21px;
+}
+
+.item{
+    width: 85%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-around;
+    align-items: self-start;
+}
+#mablagh{
+    width: 280px;
+}
+.contaner{
+    margin-top: 35px;
+}

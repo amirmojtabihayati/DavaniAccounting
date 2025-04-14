@@ -1,0 +1,77 @@
+@font-face {
+    font-family: Yekan;
+    src: url(font/Yekan.woff);
+}
+*{
+    font-family: Yekan;
+}
+body{
+    direction: rtl;
+}
+.content {
+    height: 620px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: white;
+}
+h1{
+    text-align: center;
+    margin-bottom: 35px;
+}
+form{
+    width: 520px;
+    height: auto;
+    color: #000000;
+    padding: 50px 35px 35px 35px;
+    border: 2px solid rgba(255, 255, 255, 0.13);
+    border-radius: 10px;
+    box-shadow: 1px 1px 27px -1px;
+    color: #265c7b;
+}
+label {
+    font-size: 18px;
+    font-family: 600;
+    
+}
+
+input {
+    margin-bottom: 26px;
+    font-size: 16px;
+    font-weight: 300;
+    display: block;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.07);
+    padding: 0 10px;
+    width: 100%;
+    border-radius: 21px;
+    color: #265c7b;
+    -webkit-border-radius: 21px;
+    -moz-border-radius: 21px;
+    -ms-border-radius: 21px;
+    -o-border-radius: 21px;
+}
+input::placeholder {
+    color: #265c7b;
+}
+
+input[type="submit"] {
+    font-size: 18px;
+    width: 100%;
+    border-radius: 21px;
+    height: 50px;
+    text-align: center;
+    display: block;
+    margin-top: 46px;
+    background-color: #265c7b;
+    color: white;
+    cursor: pointer;
+}
+
+input {
+    outline: none;
+}
+a{
+    text-decoration: none;
+    color: #265c7b; 
+}

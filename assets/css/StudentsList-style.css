@@ -1,0 +1,81 @@
+/*نمایش اعضاء*/
+.container-kol {
+    margin-top: 50px;
+    width: 85%;
+    height: auto;
+    background-color: whitesmoke;
+    margin: 0 auto;
+    border-radius: 10px;
+    box-shadow: 1px 1px 27px -1px;
+    color: #265c7b;
+    font-size: 16px;
+    padding: 15px;
+}
+.jostojo{
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.searchBy{
+    padding: 8px;
+    border: 1px solid #ccc;
+    outline: none;
+    background-color: rgba(255, 255, 255);
+    border: 1.5px solid #122e43;
+    border-radius: 21px;
+}
+
+table {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #265c7b;
+    border-collapse: collapse;
+    background-color: #ffffff;
+}
+
+tr:hover {
+    color: #212529;
+    background-color: rgba(0, 0, 0, .095);
+}
+
+table td {
+    padding: 0.2rem;
+    border: solid 1px #000;
+    text-align: center;
+    font-size: 14px;
+}
+
+.Button {
+    cursor: pointer;
+    width: 75px;
+    padding: 5px;
+    color: white;
+}
+
+.left-nav{
+    text-align: center;
+    margin: 10px;
+}
+
+.left-nav a {
+    font-size: 15pt;
+    color: white; /* رنگ متن */
+    text-align: center; /* مرکز کردن متن */
+    text-decoration: none; /* حذف خط زیر متن */
+    margin: 5px; /* فاصله بین دکمه‌ها */
+}
+
+button {
+    background-color: #265c7b;
+    border-radius: 21px;
+    -webkit-border-radius: 21px;
+    -moz-border-radius: 21px;
+    -ms-border-radius: 21px;
+    -o-border-radius: 21px;
+}
+
+button:hover {
+    background-color: #172c3a;
+}
+
