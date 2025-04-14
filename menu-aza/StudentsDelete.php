@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <hr>
                 <dl class="row">
                     <dt class="col-sm-3">نام کامل:</dt>
-                    <dd class="col-sm-9"><?= htmlspecialchars($student['first_name'] . ' ' . htmlspecialchars($student['last_name']) ?></dd>
+                    <dd class="col-sm-9"><?= htmlspecialchars($student['first_name'] . ' ' . htmlspecialchars($student['last_name'])) ?></dd>
                     
                     <dt class="col-sm-3">کد ملی:</dt>
                     <dd class="col-sm-9"><?= htmlspecialchars($student['national_code']) ?></dd>
