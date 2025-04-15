@@ -59,6 +59,7 @@ $css_mapping = [
     'StudentsAdd.php' => 'StudentsAdd.css',
     'StudentsDelete.php' => 'StudentsActions.css',
     'StudentsUpdate.php' => 'StudentsActions.css',
+    'logout.php' => 'StudentsActions.css',
     'StudentsList.php' => 'StudentsList-style.css',
     'debtsReport.php' => 'list-style.css',
     'debtsDetail.php' => 'list-style.css',

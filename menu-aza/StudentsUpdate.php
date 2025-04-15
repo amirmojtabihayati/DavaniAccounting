@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($update_stmt->execute()) {
             $_SESSION['flash_message'] = 'اطلاعات با موفقیت بروزرسانی شد';
-            header("Location: StudentsDetails.php?id=$student_id");
+            header("Location: StudentsList.php");
             exit();
         }
     }
@@ -120,9 +120,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="col-md-6">
                     <label for="fieldSelect" class="form-label">رشته</label>
                     <select class="form-select" id="fieldSelect" name="field" required>
-                        <option value="ریاضی" <?= $student['field'] === 'شبکه و نرم افزار' ? 'selected' : '' ?>>شبکه و نرم افزار</option>
-                        <option value="تجربی" <?= $student['field'] === 'الکترونیک' ? 'selected' : '' ?>>الکترونیک</option>
-                        <option value="انسانی" <?= $student['field'] === 'الکتروتکنیک' ? 'selected' : '' ?>>الکتروتکنیک</option>
+                        <option value="شبکه و نرم افزار" <?= $student['field'] === 'شبکه و نرم افزار' ? 'selected' : '' ?>>شبکه و نرم افزار</option>
+                        <option value="الکترونیک" <?= $student['field'] === 'الکترونیک' ? 'selected' : '' ?>>الکترونیک</option>
+                        <option value="الکتروتکنیک" <?= $student['field'] === 'الکتروتکنیک' ? 'selected' : '' ?>>الکتروتکنیک</option>
                     </select>
                 </div>
 
