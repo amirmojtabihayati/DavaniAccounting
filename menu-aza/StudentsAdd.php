@@ -154,7 +154,7 @@ $cnn->close();
         <input class="input" type="file" name="excelFile" id="excelFile" accept=".xls, .xlsx" >
 
         <button id="submit_btn" type="submit">افزودن</button>
-        <button id="submit_btn" type="button" onclick="window.location.href='../index.php'">انصراف</button>
+        <button id="submit_btn" type="button" onclick="window.location.href='../Home.php'">انصراف</button>
     </form>
 </div>
 <script src="../assets/js/hideMessage.js"></script>

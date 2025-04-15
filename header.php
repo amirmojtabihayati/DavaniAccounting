@@ -56,8 +56,10 @@ $load_datepicker_js = false; // پرچم برای بارگذاری JS مربوط
 $css_mapping = [
     'login.php' => 'login.css',
     'userAdd.php' => 'form.css',
-    'StudentsAdd.php' => 'form.css',
-    'StudentsList.php' => 'list-style.css', // نام یکسان برای همه لیست‌ها؟
+    'StudentsAdd.php' => 'StudentsAdd.css',
+    'StudentsDelete.php' => 'StudentsActions.css',
+    'StudentsUpdate.php' => 'StudentsActions.css',
+    'StudentsList.php' => 'StudentsList-style.css',
     'debtsReport.php' => 'list-style.css',
     'debtsDetail.php' => 'list-style.css',
     'debts.php' => 'form.css',
@@ -105,16 +107,21 @@ if (in_array($current_dir, ['menu-aza'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>سامانه مدیریت دانش آموزان</title>
+
     <meta name="description" content="سامانه مدیریت یکپارچه آموزشگاه"/>
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="icon" type="image/x-icon" href="<?php echo SITE_IMAGES; ?>/favicon.ico"/> <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
-    <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/footer.css"> <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/reset.css"> <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/theme.css"> <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/header-nav.css"> <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/ErrorSuccess-style.css"> <?php if ($page_css): ?>
-
+    <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/footer.css"> <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/reset.css"> <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/theme.css"> 
+    <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/ErrorSuccess-style.css"> <?php if ($page_css): ?>
+        
         <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/<?php echo $page_css; ?>">
-    <?php endif; ?>
-
-    <?php if ($datepicker_css): ?>
-        <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/dist/css/persian-datepicker.min.css"> <?php endif; ?>
+        <?php endif; ?>
+        
+        <?php if ($datepicker_css): ?>
+            <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/dist/css/persian-datepicker.min.css"> <?php endif; ?>
+            <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/header-nav.css">
 
     <script src="<?php echo SITE_ASSETS; ?>/vendor/jquery/jquery.min.js"></script> 
 </head>

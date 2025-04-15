@@ -7,7 +7,7 @@
     <style>
         @font-face {
             font-family: Yekan;
-            src: url(assets/css/font/Yekan.woff);
+            src: url(assets/font/Yekan.woff);
         }
         *{
             font-family: Yekan;
