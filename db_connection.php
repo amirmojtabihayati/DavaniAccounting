@@ -38,4 +38,3 @@ class class_db
         }
     }
 }
-?>

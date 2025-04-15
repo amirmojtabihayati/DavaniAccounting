@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -15,7 +16,7 @@ $base_path = ($script_path == '/' || $script_path == '\\') ? '' : $script_path;
 
 if ($host == $site_on_local) {
     // برای لوکال هاست، ممکن است نیاز به تعریف زیرپوشه باشد
-    // مثال: http://localhost/DavaniSchool/
+    // مثال: http://localhost/DavaniAccounting/DavaniAccounting/
     $base_url = $protocol . $host . "/DavaniAccounting/DavaniAccounting/"; // **مسیر پروژه را اینجا تنظیم کنید**
 } elseif ($host == $site_on_domain) {
     // برای دامنه اصلی
@@ -113,7 +114,7 @@ if (in_array($current_dir, ['menu-aza'])) {
     <?php endif; ?>
 
     <?php if ($datepicker_css): ?>
-        <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/persian-datepicker.min.css"> <?php endif; ?>
+        <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/dist/css/persian-datepicker.min.css"> <?php endif; ?>
 
     <script src="<?php echo SITE_ASSETS; ?>/vendor/jquery/jquery.min.js"></script> 
 </head>
@@ -185,5 +186,3 @@ if (in_array($current_dir, ['menu-aza'])) {
          </li>
     </ul>
 </nav>
-
-<main class="main-content">
