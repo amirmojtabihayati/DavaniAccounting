@@ -59,8 +59,9 @@ $css_mapping = [
     'StudentsAdd.php' => 'StudentsAdd.css',
     'StudentsDelete.php' => 'StudentsActions.css',
     'StudentsUpdate.php' => 'StudentsActions.css',
+    'logout.php' => 'StudentsActions.css',
     'StudentsList.php' => 'StudentsList-style.css',
-    'debtsReport.php' => 'list-style.css',
+    'debtsReport.php' => 'debtReport-style.css',
     'debtsDetail.php' => 'list-style.css',
     'debts.php' => 'form.css',
     'payment.php' => 'form.css',
@@ -124,6 +125,8 @@ if (in_array($current_dir, ['menu-aza'])) {
             <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/header-nav.css">
 
     <script src="<?php echo SITE_ASSETS; ?>/vendor/jquery/jquery.min.js"></script> 
+    <script src="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/dist/js/persian-datepicker.min.js"></script> 
+    <script src="<?php echo SITE_ASSETS; ?>/vendor/persianDate/dist/persian-date.min.js"></script> 
 </head>
 <body>
 

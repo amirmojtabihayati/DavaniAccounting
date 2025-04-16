@@ -1,7 +1,7 @@
 // تابع برای مخفی کردن پیام‌ها بعد از 7 ثانیه
 function hideMessages() {
-    const errorMessages = document.querySelectorAll('.error-message');
-    const successMessages = document.querySelectorAll('.success-message');
+    const errorMessages = document.querySelectorAll('.alert');
+    const successMessages = document.querySelectorAll('.alert');
 
     errorMessages.forEach(msg => {
         setTimeout(() => {
