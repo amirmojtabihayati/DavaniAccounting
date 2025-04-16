@@ -62,9 +62,9 @@ $css_mapping = [
     'logout.php' => 'StudentsActions.css',
     'StudentsList.php' => 'StudentsList-style.css',
     'debtsReport.php' => 'debtReport-style.css',
-    'debtsDetail.php' => 'list-style.css',
-    'debts.php' => 'form.css',
-    'payment.php' => 'form.css',
+    'debtsDetail.php' => 'debts.css',
+    'add_debt.php' => 'debts.css',
+    'add_payment.php' => 'debts.css',
     'taghsit.php' => 'form.css',
     'takhfif.php' => 'form.css', // اضافه شد
     // صفحات دیگر را اضافه کنید
@@ -76,7 +76,7 @@ if (isset($css_mapping[$current_filename])) {
 }
 
 // بررسی نیاز به Datepicker بر اساس نام فایل
-if (in_array($current_filename, ['debts.php', 'taghsit.php', 'payment.php'])) { // یا صفحات دیگر
+if (in_array($current_filename, ['add_debt.php', 'taghsit.php', 'add_payment.php'])) { // یا صفحات دیگر
     $datepicker_css = "persian-datepicker.min.css"; // نام دقیق فایل CSS
     $load_datepicker_js = true;
 }
@@ -111,10 +111,14 @@ if (in_array($current_dir, ['menu-aza'])) {
 
     <meta name="description" content="سامانه مدیریت یکپارچه آموزشگاه"/>
 
+    <script src="<?php echo SITE_ASSETS; ?>/vendor/PersianDate/dist/persian-date.min.js"></script>
+    <script src="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/dist/js/persian-datepicker.min.js"></script>
+    <script src="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/assets/persian-datepicker.min.js"></script>
+    <script src="<?php echo SITE_ASSETS; ?>/js/ConverterPersianNumbers.js"></script> <script src="<?php echo SITE_ASSETS; ?>/js/PersianNumbersInput.js"></script><script src="<?php echo SITE_ASSETS; ?>/js/hideMessage.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <link rel="icon" type="image/x-icon" href="<?php echo SITE_IMAGES; ?>/favicon.ico"/> <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
-    <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/footer.css"> <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/reset.css"> <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/theme.css"> 
+    <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/footer.css"> 
     <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/ErrorSuccess-style.css"> <?php if ($page_css): ?>
         
         <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/<?php echo $page_css; ?>">
@@ -124,9 +128,7 @@ if (in_array($current_dir, ['menu-aza'])) {
             <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/dist/css/persian-datepicker.min.css"> <?php endif; ?>
             <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/header-nav.css">
 
-    <script src="<?php echo SITE_ASSETS; ?>/vendor/jquery/jquery.min.js"></script> 
-    <script src="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/dist/js/persian-datepicker.min.js"></script> 
-    <script src="<?php echo SITE_ASSETS; ?>/vendor/persianDate/dist/persian-date.min.js"></script> 
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
 </head>
 <body>
 
@@ -173,8 +175,8 @@ if (in_array($current_dir, ['menu-aza'])) {
             </a>
             <ul class="submenu">
                  <li class="<?php echo ($active_submenu == 'debtsReport.php') ? 'active' : ''; ?>"><a href="<?php echo SITE_URL; ?>hesabdari/debtsReport.php">لیست بدهی ها</a></li>
-                 <li class="<?php echo ($active_submenu == 'debts.php') ? 'active' : ''; ?>"><a href="<?php echo SITE_URL; ?>hesabdari/debts.php">ثبت بدهی</a></li>
-                 <li class="<?php echo ($active_submenu == 'payment.php') ? 'active' : ''; ?>"><a href="<?php echo SITE_URL; ?>hesabdari/payment.php">ثبت پرداخت</a></li>
+                 <li class="<?php echo ($active_submenu == 'add_debt.php') ? 'active' : ''; ?>"><a href="<?php echo SITE_URL; ?>hesabdari/add_debt.php">ثبت بدهی</a></li>
+                 <li class="<?php echo ($active_submenu == 'add_payment.php') ? 'active' : ''; ?>"><a href="<?php echo SITE_URL; ?>hesabdari/add_payment.php">ثبت پرداخت</a></li>
                  <li class="<?php echo ($active_submenu == 'taghsit.php') ? 'active' : ''; ?>"><a href="<?php echo SITE_URL; ?>hesabdari/taghsit.php">تقسیط بدهی</a></li>
                  <li class="<?php echo ($active_submenu == 'takhfif.php') ? 'active' : ''; ?>"><a href="<?php echo SITE_URL; ?>hesabdari/takhfif.php">ثبت تخفیف</a></li>
             </ul>

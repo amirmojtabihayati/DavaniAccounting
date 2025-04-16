@@ -45,9 +45,8 @@
 
 // اسکریپت نمایش تاریخ در هدر (از header.php به اینجا منتقل شد تا مطمئن شویم persian-date بارگذاری شده) -->
 ?>
-<script src="<?php echo SITE_ASSETS; ?>/vendor/persian-date/persian-date.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
     // نمایش تاریخ شمسی در هدر
     const dateElement = document.getElementById('header-current-date');
     // بررسی دوباره برای اطمینان از وجود کتابخانه persianDate
@@ -55,14 +54,14 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
              dateElement.textContent = new persianDate().format('dddd D MMMM YYYY'); // فرمت کامل‌تر
         } catch (e) {
-             console.error("Error formatting persian date:", e);
+            console.error("Error formatting persian date:", e);
              // Fallback to Gregorian date if needed
              dateElement.textContent = new Date().toLocaleDateString('fa-IR');
         }
     } else if(dateElement) {
          // Fallback if persianDate library is not loaded
          dateElement.textContent = new Date().toLocaleDateString('fa-IR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    }
+        }
 
     // کد اسکرول (اختیاری)
     const header = document.querySelector('.site-header');
@@ -85,9 +84,9 @@ document.addEventListener('DOMContentLoaded', function() {
 if ($load_datepicker_js) {
     echo '<script src="' . SITE_ASSETS . '/vendor/persian-datepicker/persian-datepicker.min.js"></script>';
     // echo '<script src="' . SITE_ASSETS . '/js/datepicker-init.js"></script>'; // فایل تنظیمات Datepicker
-}
-*/
-?>
+    }
+    */
+    ?>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -1,100 +1,212 @@
 <?php
-include "../header.php";
-include_once "../convertToPersianNumbers.php";
-include_once "../Jalali-Date/jdf.php"; // اطمینان از بارگذاری درست کتابخانه jdf
+error_reporting(E_ALL);
+ini_set('display_errors', 1); // در محیط عملیاتی غیرفعال شود
 
-include "../db_connection.php";
-$cnn = (new class_db())->connection_database;
+// --- شامل کردن فایل‌های ضروری ---
+$basePath = __DIR__ . "/../";
+include $basePath . "header.php";
 
-$errors = [];
-$success_msg = [];
+$required_files_details = [
+    "convertToPersianNumbers.php",
+    "assets/vendor/Jalali-Date/jdf.php",
+    "db_connection.php"
+];
 
-$first_name = "";
-$last_name = "";
-
-if (isset($_GET['id'])) {
-    $id = $_GET['id'];
-
-    // استفاده از JOIN برای اتصال دو جدول
-    $sql = "SELECT s.first_name, s.last_name, s.national_code, d.title, d.amount, d.approval_number, d.date 
-            FROM debts d 
-            JOIN students s ON s.id = d.student_id 
-            WHERE d.student_id = ?";
-    $stmt = $cnn->prepare($sql);
-
-    if ($stmt) {
-        $stmt->bind_param("i", $id); // اطمینان از استفاده از نوع داده صحیح
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        // دریافت نام و نام خانوادگی دانش‌آموز
-        if ($row = $result->fetch_assoc()) {
-            $first_name = htmlspecialchars($row['first_name']);
-            $last_name = htmlspecialchars($row['last_name']);
-            $nationalCode = htmlspecialchars($row['national_code']);
-            $result->data_seek(0); // بازگشت به ابتدای نتیجه برای حلقه بعدی
-        }
+foreach ($required_files_details as $file) {
+    $filepath = $basePath . $file;
+    if (file_exists($filepath)) {
+        include_once $filepath;
     } else {
-        $errors[] = "خطا در آماده سازی پرس و جو";
+        error_log("Required file not found (Details Page): " . $filepath);
+        die("<div class='container'><div class='error-message'>خطای سیستمی: فایل ضروری یافت نشد ($file).</div></div>");
     }
 }
+
+if (!function_exists('convertToPersianNumbers')) { /* ... */ }
+if (!function_exists('jdate')) { /* ... */ }
+
+// --- دریافت و اعتبارسنجی ID دانش آموز ---
+$student_id = null;
+if (isset($_GET['id'])) {
+    $student_id = filter_var($_GET['id'], FILTER_VALIDATE_INT);
+    if ($student_id === false) {
+        die("<div class='container'><div class='error-message'>شناسه دانش آموز نامعتبر است.</div></div>");
+    }
+} else {
+     die("<div class='container'><div class='error-message'>شناسه دانش آموز مشخص نشده است.</div></div>");
+}
+
+
+// --- اتصال به پایگاه داده ---
+try {
+    $db = new class_db();
+    $cnn = $db->connection_database;
+    if ($cnn) {
+        $cnn->set_charset("utf8mb4");
+    } else {
+        throw new Exception("Database connection failed.");
+    }
+} catch (Exception $e) {
+    error_log("Debt Details DB Error: " . $e->getMessage());
+    die("<div class='container'><div class='error-message'>خطا در اتصال به پایگاه داده.</div></div>");
+}
+
+
+// --- واکشی اطلاعات دانش آموز و بدهی ها ---
+$first_name = "";
+$last_name = "";
+$nationalCode = "";
+$debts_data = []; // آرایه برای نگهداری تمام رکوردهای بدهی
+$errors = [];
+
+// کوئری بهینه تر: ابتدا اطلاعات دانش آموز را جداگانه بگیرید
+$sql_student_info = "SELECT first_name, last_name, national_code FROM students WHERE id = ?";
+$stmt_student_info = $cnn->prepare($sql_student_info);
+if ($stmt_student_info) {
+    $stmt_student_info->bind_param("i", $student_id);
+    $stmt_student_info->execute();
+    $result_student_info = $stmt_student_info->get_result();
+    if ($student_info = $result_student_info->fetch_assoc()) {
+        $first_name = htmlspecialchars($student_info['first_name']);
+        $last_name = htmlspecialchars($student_info['last_name']);
+        $nationalCode = htmlspecialchars($student_info['national_code']);
+    } else {
+        $errors[] = "دانش آموزی با این شناسه یافت نشد.";
+    }
+    $stmt_student_info->close();
+} else {
+     $errors[] = "خطا در آماده سازی کوئری اطلاعات دانش آموز.";
+     error_log("Prepare failed (student info): " . $cnn->error);
+}
+
+
+// اگر دانش آموز پیدا شد، بدهی هایش را واکشی کن
+if (empty($errors)) {
+    $sql_debts = "SELECT title, amount, approval_number, date
+                  FROM debts
+                  WHERE student_id = ?
+                  ORDER BY title, date DESC"; // مرتب سازی بر اساس عنوان و سپس تاریخ
+
+    $stmt_debts = $cnn->prepare($sql_debts);
+    if ($stmt_debts) {
+        $stmt_debts->bind_param("i", $student_id);
+        $stmt_debts->execute();
+        $result_debts = $stmt_debts->get_result();
+        if ($result_debts) {
+            $debts_data = $result_debts->fetch_all(MYSQLI_ASSOC); // دریافت همه نتایج در یک آرایه
+        } else {
+             $errors[] = "خطا در دریافت نتایج بدهی ها.";
+             error_log("Get result failed (fetch debts): " . $stmt_debts->error);
+        }
+        $stmt_debts->close();
+    } else {
+        $errors[] = "خطا در آماده سازی کوئری بدهی ها.";
+        error_log("Prepare failed (fetch debts): " . $cnn->error);
+    }
+}
+
+// --- گروه بندی بدهی ها و محاسبه مجموع ---
+$grouped_debts = [];
+$grand_total_debt = 0;
+
+if (!empty($debts_data)) {
+    foreach ($debts_data as $debt) {
+        $title = $debt['title'] ?? 'بدون عنوان'; // عنوان پیش فرض اگر خالی بود
+        if (!isset($grouped_debts[$title])) {
+            $grouped_debts[$title] = [
+                'items' => [],
+                'subtotal' => 0
+            ];
+        }
+         // تبدیل تاریخ به شمسی
+        $jalaliDate = '-';
+        if (!empty($debt['date'])) {
+             try {
+                 $timestamp = strtotime($debt['date']);
+                 if ($timestamp && function_exists('jdate')) {
+                     $jalaliDate = jdate('Y/m/d', $timestamp);
+                 } else { $jalaliDate = $debt['date']; }
+             } catch(Exception $e) { $jalaliDate = 'خطا تاریخ'; }
+        }
+        // افزودن تاریخ شمسی به آیتم
+         $debt['jalali_date'] = $jalaliDate;
+
+        $grouped_debts[$title]['items'][] = $debt; // اضافه کردن آیتم به گروه
+        $current_amount = (float)($debt['amount'] ?? 0);
+        $grouped_debts[$title]['subtotal'] += $current_amount; // محاسبه مجموع هر گروه
+        $grand_total_debt += $current_amount; // محاسبه مجموع کل
+    }
+}
+
+// --- بستن اتصال ---
+$cnn->close();
 ?>
-<div class="debt-container">
-    <div style="box-shadow: 1px 1px 27px -1px;
-                background-color: whitesmoke;
-                margin: auto;
-                max-width: 75%;
-                padding: 20px;
-                border-radius: 5px;">
 
-        <div style="display: flex; justify-content: space-between;">
-            <h1 style="margin: auto;">وضعیت بدهی دانش‌آموز <?= $first_name . ' ' . $last_name?></h1>
-            <a href="debtsReport.php" title="بازگشت" style="display: inline-flex; float: left;">
-                <svg xmlns="http://www.w3.org/2000/svg" 
-                    width="41" height="41" viewBox="0 0 24 24" fill="none" stroke="#265c7b" 
-                    stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-left-circle"> 
-                    <circle 
-                    cx="12" cy="12" r="10"/><polyline points="12 8 8 12 12 16"/><line x1="16" y1="12" x2="8" y2="12"/>
-                </svg>
-            </a>
-        </div><hr>
-        <h1 style="text-align: center;">کد ملی: <?= convertToPersianNumbers($nationalCode) ?></h1><hr>
-        <table id="payments_table" style="width: 100%; border-collapse: collapse; margin: auto; text-align: center;">
-            <tr>
-                <th>عنوان</th>
-                <th>مقدار</th>
-                <th>شماره مصوبه</th>
-                <th>تاریخ</th>
-            </tr>
-            <?php
-            if ($result && $result->num_rows > 0) {
-                while ($row = $result->fetch_assoc()) {
-                    $national_code = htmlspecialchars($row['national_code']);
-                    $title = htmlspecialchars($row['title']);
-                    $amount = htmlspecialchars($row['amount']);
-                    $approval_number = htmlspecialchars($row['approval_number']);
-                    $date = htmlspecialchars($row['date']);
-
-                    // تبدیل تاریخ میلادی به timestamp
-                    $timestamp = strtotime($date); 
-                    // تبدیل به تاریخ شمسی
-                    $jalaliDate = jdate('Y/m/d', $timestamp); 
-            ?>
-            <tr class="debt_tr">
-                <td style="border-bottom: 1px solid black;"><?= $title; ?></td>
-                <td style="border-bottom: 1px solid black;"><?= convertToPersianNumbers(number_format($amount, 0, ',', ',')); ?></td>
-                <td style="border-bottom: 1px solid black;"><?= convertToPersianNumbers($approval_number); ?></td>
-                <td style="border-bottom: 1px solid black;"><?= convertToPersianNumbers($jalaliDate); ?></td> <!-- تاریخ تبدیل شده به شمسی -->
-            </tr>
-            <?php
-                }
-            } else {
-                echo "<tr><td colspan='6' style='border-bottom: 1px solid black;'>هیچ داده‌ای موجود نیست.</td></tr>";
-            }
-            ?>
-        </table>
+<div class="container">
+    <div class="page-header">
+        <h1 class="page-title">جزئیات وضعیت بدهی دانش‌آموز: <?= $first_name . ' ' . $last_name ?></h1>
+        <a href="debtsReport.php" title="بازگشت به لیست بدهی‌ها" class="back-link Button cancel-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-arrow-left"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+            بازگشت
+        </a>
     </div>
-</div>
-<?php
-include "../footer.php";
+    <hr>
+
+    <?php if (!empty($errors)): ?>
+        <?php foreach ($errors as $error): ?>
+            <div class="error-message"><?= htmlspecialchars($error); ?></div>
+        <?php endforeach; ?>
+    <?php else: ?>
+        <div class="student-info">
+            <strong>کد ملی:</strong> <?= convertToPersianNumbers($nationalCode) ?>
+        </div>
+        <hr>
+
+        <div class="table-responsive">
+            <table class="styled-table debt-details-table">
+                <thead>
+                    <tr>
+                        <th style="width: 35%;">عنوان بدهی</th>
+                        <th style="width: 25%;">مبلغ (تومان)</th>
+                        <th style="width: 20%;">شماره مصوبه</th>
+                        <th style="width: 20%;">تاریخ ثبت (شمسی)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php if (!empty($grouped_debts)): ?>
+                    <?php foreach ($grouped_debts as $title => $group): ?>
+                        <tr>
+                            <th colspan="4" class="group-header"><?= htmlspecialchars($title) ?></th>
+                        </tr>
+                        <?php foreach ($group['items'] as $debt_item): ?>
+                        <tr>
+                            <td></td>
+                            <td><?= convertToPersianNumbers(number_format((float)$debt_item['amount'])) ?></td>
+                            <td><?= convertToPersianNumbers(htmlspecialchars($debt_item['approval_number'] ?? '-')) ?></td>
+                            <td><?= convertToPersianNumbers(htmlspecialchars($debt_item['jalali_date'] ?? '-')) ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                         <tr class="subtotal-row">
+                             <td class="subtotal-label">مجموع (<?= htmlspecialchars($title) ?>):</td>
+                             <td class="subtotal-amount"><?= convertToPersianNumbers(number_format($group['subtotal'])) ?></td>
+                             <td colspan="2"></td> </tr>
+                    <?php endforeach; ?>
+                 </tbody>
+                 <tfoot>
+                    <tr class="grand-total-row">
+                        <th class="grand-total-label">مجموع کل بدهی:</th>
+                        <th class="grand-total-amount"><?= convertToPersianNumbers(number_format($grand_total_debt)) ?></th>
+                        <th colspan="2"></th> </tr>
+                 </tfoot>
+
+                <?php else: ?>
+                    <tr>
+                        <td colspan="4" class="no-results">هیچ سابقه بدهی برای این دانش آموز ثبت نشده است.</td>
+                    </tr>
+                 </tbody> </table> <?php endif; ?>
+                <?php if (!empty($grouped_debts)): ?>
+                     </table> <?php endif; ?>
+
+        </div> <?php endif; ?> </div> <?php
+include $basePath . "footer.php";
 ?>

@@ -1,0 +1,353 @@
+/* --- General Styles --- */
+body {
+    font-family: 'Vazirmatn', 'Tahoma', sans-serif;
+    direction: rtl;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f7f6;
+    color: #333;
+    font-size: 14px; /* Base font size */
+}
+
+.container {
+    width: 95%;
+    max-width: 900px; /* عرض مناسب برای فرم ها و جزئیات */
+    margin: 20px auto;
+    padding: 25px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Titles & Headers --- */
+.page-title {
+    color: #333;
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 1.6em;
+}
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px; /* فاصله بین آیکون و متن */
+    text-decoration: none;
+    font-size: 0.9em; /* کمی کوچکتر */
+}
+.back-link svg {
+     margin-left: 5px; /* فاصله از متن */
+}
+
+h2 { /* عناوین بخش ها */
+    color: #0056b3;
+    margin-top: 20px;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid #eee;
+    font-size: 1.3em;
+}
+
+hr {
+    border: 0;
+    height: 1px;
+    background-color: #ddd;
+    margin: 25px 0;
+}
+
+/* --- Forms (Add Debt Page) --- */
+.search-form-section, .debt-add-form {
+    margin-bottom: 20px;
+}
+
+.jostojo { /* Container for search elements */
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.jostojo label {
+    font-weight: bold;
+    margin-left: 5px;
+    flex-shrink: 0; /* جلوگیری از کوچک شدن لیبل */
+}
+
+.searchBy { /* Input field in search */
+    padding: 9px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1em;
+    flex-grow: 1;
+    min-width: 200px;
+}
+.searchBy:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* ستون های ریسپانسیو */
+    gap: 20px; /* فاصله بین فیلدها */
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column; /* لیبل بالای فیلد */
+}
+
+.form-group label {
+    margin-bottom: 8px; /* فاصله لیبل از فیلد */
+    font-weight: bold;
+    color: #555;
+    font-size: 0.95em;
+}
+
+.input, .select {
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1em;
+    width: 100%; /* عرض کامل */
+    box-sizing: border-box; /* محاسبه پدینگ و بوردر در عرض */
+    background-color: #fff;
+}
+.input:focus, .select:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+.input[readonly] {
+    background-color: #e9ecef;
+    cursor: pointer; /* نشانگر برای تاریخ */
+}
+
+.select {
+    appearance: none; /* حذف ظاهر پیش فرض */
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007bff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); /* آیکون فلش */
+    background-repeat: no-repeat;
+    background-position: left 10px center;
+    background-size: 10px auto;
+    padding-left: 30px; /* فضا برای آیکون */
+}
+.form-group small {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-top: 4px;
+}
+
+.form-actions {
+    margin-top: 30px;
+    display: flex;
+    justify-content: flex-end; /* دکمه ها در سمت چپ (چون RTL است) */
+    gap: 10px;
+}
+
+/* --- Buttons (Shared Styles) --- */
+.Button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    font-family: inherit;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+    background-color: #007bff;
+    color: white;
+    line-height: 1.5; /* Ensure text is vertically centered */
+}
+.Button:hover {
+    background-color: #0056b3;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+.Button:active {
+     background-color: #004085;
+     transform: translateY(1px); /* Effect on click */
+}
+.search-button { background-color: #17a2b8; }
+.search-button:hover { background-color: #138496; }
+.reset-button { background-color: #6c757d; }
+.reset-button:hover { background-color: #5a6268; }
+.save-button { background-color: #28a745; }
+.save-button:hover { background-color: #218838; }
+.cancel-button { background-color: #dc3545; }
+.cancel-button:hover { background-color: #c82333; }
+
+
+/* --- Messages --- */
+.message-container {
+    margin: 15px 0;
+}
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    font-size: 0.95em;
+}
+.success-message {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+    padding: 10px 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+     font-size: 0.95em;
+}
+.loading-message {
+    color: #007bff;
+    font-style: italic;
+    text-align: center;
+    padding: 10px;
+}
+
+
+/* --- Debt Status Container (Add Debt Page) --- */
+.debt-status-container {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 25px;
+}
+.debt-status-container h2, .debt-status-container h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #495057;
+    font-size: 1.2em;
+}
+.debt-status-container h3 {
+     font-size: 1.1em;
+}
+#current_debt_info {
+    font-size: 1.1em;
+    color: #0056b3;
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* --- Tables (Shared Styles & Details Page Specific) --- */
+.table-responsive {
+    overflow-x: auto; /* Add horizontal scroll on small screens */
+}
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    font-size: 0.95em;
+    border: 1px solid #ddd;
+}
+.styled-table thead {
+    background-color: #007bff;
+    color: #fff;
+}
+.styled-table th, .styled-table td {
+    padding: 12px 15px;
+    text-align: right;
+    border-bottom: 1px solid #ddd;
+    border-left: 1px solid #ddd;
+}
+.styled-table th:last-child, .styled-table td:last-child {
+    border-left: none;
+}
+.styled-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+.styled-table tbody tr:hover {
+    background-color: #e9ecef;
+}
+.styled-table .no-results {
+    text-align: center;
+    font-style: italic;
+    color: #777;
+    padding: 20px;
+}
+.small-font { /* For table in add debt status */
+     font-size: 0.9em;
+}
+.small-font th, .small-font td {
+     padding: 8px 10px;
+}
+
+/* Debt Details Table Specific Styles */
+.debt-details-table th.group-header {
+    background-color: #e9ecef; /* Lighter header for group title */
+    color: #495057;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.1em;
+    padding: 10px;
+    border-top: 2px solid #007bff; /* Separator line above group */
+}
+.debt-details-table tr.subtotal-row {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+.debt-details-table td.subtotal-label {
+    text-align: left; /* Align label to the left */
+    padding-left: 20px;
+    color: #333;
+}
+.debt-details-table td.subtotal-amount {
+     color: #0056b3;
+     text-align: right; /* Align amount to the right */
+}
+
+.debt-details-table tfoot tr.grand-total-row {
+    background-color: #007bff;
+    color: white;
+    font-size: 1.1em;
+    font-weight: bold;
+}
+.debt-details-table th.grand-total-label {
+     text-align: left;
+     padding-left: 20px;
+}
+ .debt-details-table th.grand-total-amount {
+     text-align: right;
+ }
+
+.student-info { /* For national code display */
+     font-size: 1.1em;
+     padding: 10px 0;
+     text-align: center;
+}
+
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
+    .container {
+        width: 98%;
+        padding: 15px;
+    }
+    .page-title {
+        font-size: 1.4em;
+    }
+    .form-grid {
+        grid-template-columns: 1fr; /* Single column on small screens */
+        gap: 15px;
+    }
+    .form-actions {
+        justify-content: center; /* Center buttons */
+    }
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+     .back-link {
+         align-self: flex-end; /* Move back button to the right */
+     }
+}

@@ -1,246 +1,447 @@
 <?php
 // include های ضروری
-include "../header.php";
-include "../db_connection.php"; // فرض می‌کنیم این فایل کلاس class_db و متد connection_database را دارد
-include_once "../convertToPersianNumbers.php"; // تابع تبدیل به اعداد فارسی برای نمایش
-require_once "../Jalali-Date/jdf.php"; // کتابخانه تاریخ جلالی
+include "../header.php"; // Assume header includes necessary CSS links or <style> tags
 
-// تابع کمکی برای تبدیل اعداد فارسی/عربی به انگلیسی
+// --- Error Reporting (Disable in production) ---
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+// --- Includes ---
+$basePath = __DIR__ . "/../";
+include_once $basePath . "db_connection.php";
+include_once $basePath . "convertToPersianNumbers.php"; // Function for display
+require_once $basePath . "assets/vendor/Jalali-Date/jdf.php"; // Jalali date library
+
+// --- Helper Function ---
 function convertToEnglishNumbers($string) {
+    if ($string === null || $string === '') return '';
     $persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '،'];
-    $arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '٬']; // شامل کامای عربی/فارسی
-    $english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '']; // کاما حذف می‌شود
+    $arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '٬'];
+    $english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '']; // Remove comma
 
-    // حذف جداکننده هزارگان انگلیسی
-    $string = str_replace(',', '', $string);
-    // تبدیل فارسی و عربی به انگلیسی و حذف کامای فارسی/عربی
+    $string = str_replace(',', '', $string); // Remove English comma first
     return str_replace($persian, $english, str_replace($arabic, $english, $string));
 }
 
+// --- Database Connection ---
+try {
+    $db = new class_db();
+    $cnn = $db->connection_database;
+    if ($cnn) {
+        $cnn->set_charset("utf8mb4");
+    } else {
+        throw new Exception("Database connection failed.");
+    }
+} catch (Exception $e) {
+    error_log("Installment Page DB Error: " . $e->getMessage());
+    // Display user-friendly error message within the layout in the HTML part
+    $errors[] = "خطا در اتصال به پایگاه داده.";
+    // Avoid dying here to allow the rest of the page structure to load
+}
 
-$cnn = (new class_db())->connection_database;
-
+// --- Variable Initialization ---
 $errors = [];
 $success_msg = [];
 $search_national_code = '';
-$debt_amount = 0.0; // مقدار اولیه بدهی به صورت عددی
-$debt_amount_display = ''; // برای نمایش با فرمت فارسی
 $student_name = '';
-$student_id = null; // اضافه شد برای ذخیره ID دانش آموز
+$student_id = null;
 $debt_titles = [];
-$has_debt = false; // متغیر برای بررسی وجود بدهی
+$has_debt = false;
+$form_data_to_repopulate = null; // To store POST data if submission fails
 
-// بررسی درخواست POST
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+// --- Process POST Request ---
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($cnn)) { // Only process if DB connection is okay
 
-    // بخش جستجوی دانش آموز
+    // --- Student Search ---
     if (isset($_POST['search'])) {
-        $search_national_code = trim($_POST['national_code']);
+        $search_national_code = trim($_POST['national_code'] ?? '');
         if (!empty($search_national_code)) {
-            // بهینه‌سازی: گرفتن نام و ID در یک کوئری
             $stmt = $cnn->prepare("SELECT id, first_name, last_name FROM students WHERE national_code = ?");
-            $stmt->bind_param("s", $search_national_code);
-            $stmt->execute();
-            $result = $stmt->get_result();
+            if ($stmt) {
+                $stmt->bind_param("s", $search_national_code);
+                $stmt->execute();
+                $result = $stmt->get_result();
 
-            if ($student_data = $result->fetch_assoc()) {
-                $student_id = $student_data['id']; // ذخیره ID
-                $student_name = $student_data['first_name'] . ' ' . $student_data['last_name'];
+                if ($student_data = $result->fetch_assoc()) {
+                    $student_id = $student_data['id'];
+                    $student_name = $student_data['first_name'] . ' ' . $student_data['last_name'];
 
-                // جستجوی عناوین بدهی مربوط به این دانش‌آموز
-                $stmt_debt = $cnn->prepare("SELECT title FROM debts WHERE student_id = ? AND amount > 0"); // فقط بدهی های پرداخت نشده یا با مبلغ مثبت
-                $stmt_debt->bind_param("i", $student_id); // بایند با ID
-                $stmt_debt->execute();
-                $debt_result = $stmt_debt->get_result();
-                while ($row = $debt_result->fetch_assoc()) {
-                    $debt_titles[] = $row['title'];
-                }
-                $stmt_debt->close();
-
-                if (count($debt_titles) > 0) {
-                    $has_debt = true;
+                    // Fetch active debt titles for this student
+                    $stmt_debt = $cnn->prepare("SELECT DISTINCT title FROM debts WHERE student_id = ? AND amount > 0 ORDER BY title");
+                    if ($stmt_debt) {
+                        $stmt_debt->bind_param("i", $student_id);
+                        $stmt_debt->execute();
+                        $debt_result = $stmt_debt->get_result();
+                        while ($row = $debt_result->fetch_assoc()) {
+                            $debt_titles[] = $row['title'];
+                        }
+                        $stmt_debt->close();
+                        $has_debt = count($debt_titles) > 0;
+                        if (!$has_debt) {
+                            $errors[] = "هیچ بدهی فعالی برای این دانش‌آموز یافت نشد.";
+                        }
+                    } else {
+                         $errors[] = "خطا در دریافت عناوین بدهی: " . $cnn->error;
+                    }
                 } else {
-                    $errors[] = "هیچ بدهی فعالی برای این دانش‌آموز یافت نشد.";
-                    $has_debt = false;
+                    $errors[] = "دانش‌آموزی با این کد ملی یافت نشد.";
                 }
+                $stmt->close();
             } else {
-                $errors[] = "دانش‌آموزی با این کد ملی یافت نشد.";
-                $student_name = '';
-                $has_debt = false;
+                 $errors[] = "خطا در آماده‌سازی جستجوی دانش‌آموز: " . $cnn->error;
             }
-            $stmt->close();
         } else {
-             $errors[] = "لطفا کد ملی را وارد کنید.";
+            $errors[] = "لطفا کد ملی را برای جستجو وارد کنید.";
         }
     }
-    // بخش افزودن قسط بندی - بدون تودرتویی شرط POST
-    // نکته: برای اجرای این بخش، کد ملی باید از قبل جستجو شده و در سشن یا فیلد مخفی نگهداری شود
-    // یا اینکه فرم افزودن قسط شامل کد ملی هم باشد. فرض می‌کنیم کد ملی در $search_national_code وجود دارد (از جستجوی قبلی).
-     else if (isset($_POST['add_taghsit'])) {
-        // دریافت کد ملی از فیلد مخفی یا از متغیر اگر در همان صفحه است
-        $search_national_code = $_POST['hidden_national_code'] ?? $search_national_code; // بازیابی کد ملی
-        $student_id = $_POST['hidden_student_id'] ?? null; // بازیابی ID دانش آموز
-        $debt_title = trim($_POST['debt_title']);
+    // --- Add Installment Plan ---
+    else if (isset($_POST['add_taghsit'])) {
+        // Retrieve necessary data
+        $search_national_code = $_POST['hidden_national_code'] ?? ''; // Get from hidden field
+        $student_id = isset($_POST['hidden_student_id']) ? filter_var($_POST['hidden_student_id'], FILTER_VALIDATE_INT) : null;
+        $debt_title = trim($_POST['debt_title'] ?? '');
         $number_of_installments = filter_input(INPUT_POST, 'number_of_installments', FILTER_VALIDATE_INT);
-        $installment_dates = $_POST['installment_dates'] ?? []; // آرایه تاریخ‌ها
-        $manual_amounts = $_POST['manual_amounts'] ?? []; // آرایه مبالغ
+        $installment_dates = $_POST['installment_dates'] ?? [];
+        $manual_amounts = $_POST['manual_amounts'] ?? [];
+        $amount_type = $_POST['amount_type'] ?? 'automatic'; // Get amount type
 
-        // اعتبارسنجی اولیه
-        if (empty($search_national_code) || empty($student_id)) {
-             $errors[] = "اطلاعات دانش‌آموز (کد ملی) یافت نشد. لطفاً ابتدا جستجو کنید.";
-        } elseif (empty($debt_title)) {
-            $errors[] = "لطفاً عنوان بدهی را انتخاب کنید.";
-        } elseif ($number_of_installments === false || $number_of_installments <= 0) {
-            $errors[] = "تعداد اقساط نامعتبر است.";
-        } elseif (count($installment_dates) !== $number_of_installments || count($manual_amounts) !== $number_of_installments) {
-             $errors[] = "تعداد تاریخ‌ها یا مبالغ وارد شده با تعداد اقساط انتخاب شده مغایرت دارد.";
-        } else {
-            // آماده‌سازی دستور INSERT
-            // ستون debt_amount در جدول installments باید از نوع DECIMAL یا FLOAT باشد
-            $stmt_insert = $cnn->prepare("INSERT INTO installments (student_id, national_code, debt_title, installment_amount, due_date, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
-            if ($stmt_insert === false) {
-                $errors[] = "خطا در آماده‌سازی دستور پایگاه داده: " . $cnn->error;
-            } else {
-                $insert_success = true;
-                for ($i = 0; $i < $number_of_installments; $i++) {
-                    $due_date_jalali = trim($installment_dates[$i]);
-                    // تبدیل مبلغ فارسی/عربی به انگلیسی و سپس به float
-                    $amount_str = convertToEnglishNumbers($manual_amounts[$i]);
-                    $installment_amount_val = filter_var($amount_str, FILTER_VALIDATE_FLOAT);
+        // Store POST data to repopulate form if error occurs
+        $form_data_to_repopulate = $_POST;
 
-                    // اعتبارسنجی تاریخ و مبلغ
-                    if (empty($due_date_jalali)) {
-                        $errors[] = "تاریخ قسط " . ($i + 1) . " نمی‌تواند خالی باشد.";
-                        $insert_success = false;
-                        break; // توقف حلقه در صورت خطا
-                    }
-                     if ($installment_amount_val === false || $installment_amount_val <= 0) {
-                        $errors[] = "مبلغ قسط " . ($i + 1) . " نامعتبر است (" . htmlspecialchars($manual_amounts[$i]) . ").";
-                        $insert_success = false;
-                        break; // توقف حلقه در صورت خطا
-                    }
+        // --- Validation ---
+        if (empty($student_id)) { $errors[] = "اطلاعات دانش‌آموز نامعتبر است. لطفاً دوباره جستجو کنید."; }
+        if (empty($debt_title)) { $errors[] = "لطفاً عنوان بدهی را انتخاب کنید."; }
+        if ($number_of_installments === false || $number_of_installments <= 0) { $errors[] = "تعداد اقساط نامعتبر است."; }
+        if (count($installment_dates) !== $number_of_installments) { $errors[] = "تعداد تاریخ‌های وارد شده (" . count($installment_dates) . ") با تعداد اقساط (" . $number_of_installments . ") مغایرت دارد."; }
+        if (count($manual_amounts) !== $number_of_installments) { $errors[] = "تعداد مبالغ وارد شده (" . count($manual_amounts) . ") با تعداد اقساط (" . $number_of_installments . ") مغایرت دارد."; }
 
+        // --- Further Validation and Processing if no initial errors ---
+        if (empty($errors)) {
+            $total_manual_amount = 0;
+            $validated_installments = []; // Store validated data
 
-                    // تبدیل تاریخ جلالی به میلادی
-                    try {
-                        // بررسی فرمت YYYY/MM/DD
-                        if (!preg_match('/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/', $due_date_jalali, $matches)) {
-                             throw new Exception("فرمت تاریخ قسط " . ($i + 1) . " نامعتبر است.");
-                        }
-                        list($jy, $jm, $jd) = [$matches[1], $matches[2], $matches[3]];
-                        $gregorianDate = jdf("Y-m-d", jmktime(0, 0, 0, $jm, $jd, $jy)); // استفاده مستقیم از jdf برای تبدیل امن‌تر
-                         if (!$gregorianDate) {
-                             throw new Exception("تاریخ قسط " . ($i + 1) . " نامعتبر است.");
-                         }
-                    } catch (Exception $e) {
-                        $errors[] = $e->getMessage();
-                        $insert_success = false;
-                        break;
-                    }
+            for ($i = 0; $i < $number_of_installments; $i++) {
+                $due_date_jalali = trim($installment_dates[$i]);
+                $amount_str = convertToEnglishNumbers($manual_amounts[$i]);
+                $installment_amount_val = filter_var($amount_str, FILTER_VALIDATE_FLOAT);
 
-                    // بایند کردن مقادیر - i برای student_id, s برای national_code, s برای title, d برای amount, s برای date
-                    $stmt_insert->bind_param("issds", $student_id, $search_national_code, $debt_title, $installment_amount_val, $gregorianDate);
+                // Validate each date and amount
+                if (empty($due_date_jalali)) { $errors[] = "تاریخ قسط " . ($i + 1) . " نمی‌تواند خالی باشد."; break; }
+                if ($installment_amount_val === false || $installment_amount_val <= 0) { $errors[] = "مبلغ قسط " . ($i + 1) . " نامعتبر است."; break; }
 
-                    if (!$stmt_insert->execute()) {
-                        $errors[] = "خطا در ذخیره‌سازی قسط " . ($i + 1) . ": " . $stmt_insert->error;
-                        $insert_success = false;
-                        break; // توقف در صورت خطا
-                    }
-                } // End for loop
-
-                $stmt_insert->close();
-
-                if ($insert_success && empty($errors)) {
-                    $success_msg[] = "تقسیط بدهی با موفقیت ثبت شد.";
-                    // پاک کردن داده‌های فرم یا ریدایرکت
-                    // $search_national_code = ''; // برای پاک کردن فرم جستجو
-                    // $student_name = '';
-                    // $debt_titles = [];
-                    // $has_debt = false;
-                    // $debt_amount_display = '';
-                    // $student_id = null;
-
-                    // یا ریدایرکت به همین صفحه یا صفحه دیگر
-                    // header("Location: " . $_SERVER['PHP_SELF'] . "?status=success");
-                    // exit;
-
-                } elseif (empty($errors)) {
-                     $errors[] = "خطا: عملیات ثبت اقساط به طور کامل انجام نشد.";
+                // Validate Jalali date format and convert to Gregorian
+                if (!preg_match('/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/', $due_date_jalali, $matches)) {
+                    $errors[] = "فرمت تاریخ قسط " . ($i + 1) . " ( " . htmlspecialchars($due_date_jalali) . " ) نامعتبر است. لطفاً از فرمت YYYY/MM/DD استفاده کنید."; break;
                 }
-
-                 // اگر خطایی رخ داده، باید اطلاعات دانش آموز و بدهی ها را مجدد لود کنیم تا فرم به درستی نمایش داده شود
-                if(!empty($errors) && !empty($search_national_code) && empty($student_name)){
-                     // کد بازیابی اطلاعات دانش آموز و بدهی ها مانند بخش search
-                     $stmt_reload = $cnn->prepare("SELECT id, first_name, last_name FROM students WHERE national_code = ?");
-                     $stmt_reload->bind_param("s", $search_national_code);
-                     $stmt_reload->execute();
-                     $result_reload = $stmt_reload->get_result();
-                     if ($student_data_reload = $result_reload->fetch_assoc()) {
-                        $student_id = $student_data_reload['id'];
-                        $student_name = $student_data_reload['first_name'] . ' ' . $student_data_reload['last_name'];
-                        $stmt_debt_reload = $cnn->prepare("SELECT title FROM debts WHERE student_id = ? AND amount > 0");
-                        $stmt_debt_reload->bind_param("i", $student_id);
-                        $stmt_debt_reload->execute();
-                        $debt_result_reload = $stmt_debt_reload->get_result();
-                        while ($row_reload = $debt_result_reload->fetch_assoc()) {
-                            $debt_titles[] = $row_reload['title'];
-                        }
-                        $stmt_debt_reload->close();
-                        $has_debt = count($debt_titles) > 0;
+                try {
+                    list($jy, $jm, $jd) = [$matches[1], $matches[2], $matches[3]];
+                    // Use jmktime carefully, ensure month/day are valid before calling
+                     if ($jm < 1 || $jm > 12 || $jd < 1 || $jd > 31) { // Basic validation
+                         throw new Exception("اجزای تاریخ قسط " . ($i + 1) . " نامعتبر است.");
                      }
-                     $stmt_reload->close();
+                     // Check for valid day in month (more complex, jdf might handle it)
+                     // $daysInMonth = jdate('t', jmktime(0,0,0, $jm, 1, $jy));
+                     // if ($jd > $daysInMonth) { throw new Exception(...) }
+
+                    $timestamp = jmktime(0, 0, 0, $jm, $jd, $jy);
+                     if (!$timestamp) { throw new Exception("تاریخ قسط " . ($i + 1) . " نامعتبر است."); }
+                    $gregorianDate = jdate("Y-m-d", $timestamp, '', '', 'en'); // Get Gregorian date
+                     if (!$gregorianDate) { throw new Exception("خطا در تبدیل تاریخ قسط " . ($i + 1) . "."); }
+
+                } catch (Exception $e) {
+                    $errors[] = $e->getMessage(); break;
                 }
 
+                $validated_installments[] = [
+                    'amount' => $installment_amount_val,
+                    'date' => $gregorianDate
+                ];
+                $total_manual_amount += $installment_amount_val;
+            } // End for loop validation
 
-            } // End else ($stmt_insert !== false)
-        } // End else (validation)
+            // Check if total manual amount matches the original debt amount (if applicable)
+             if (empty($errors) && $amount_type === 'manual') {
+                // Fetch the original debt amount again for comparison (more secure than relying on JS variable)
+                 $stmt_orig_amount = $cnn->prepare("SELECT amount FROM debts WHERE student_id = ? AND title = ?");
+                  if ($stmt_orig_amount) {
+                      $stmt_orig_amount->bind_param("is", $student_id, $debt_title);
+                      $stmt_orig_amount->execute();
+                      $result_orig_amount = $stmt_orig_amount->get_result();
+                      if ($row_orig = $result_orig_amount->fetch_assoc()) {
+                          $original_debt_amount = (float)$row_orig['amount'];
+                           // Compare with a small tolerance for floating point issues
+                           if (abs($total_manual_amount - $original_debt_amount) > 0.01) {
+                               $errors[] = "مجموع مبالغ اقساط وارد شده (" . number_format($total_manual_amount) . ") با مبلغ کل بدهی (" . number_format($original_debt_amount) . ") برای عنوان '" . htmlspecialchars($debt_title) . "' مطابقت ندارد.";
+                           }
+                      } else { $errors[] = "خطا: مبلغ اصلی بدهی یافت نشد."; }
+                      $stmt_orig_amount->close();
+                  } else { $errors[] = "خطا در بررسی مبلغ اصلی بدهی."; }
+             }
+
+
+            // --- Insert into Database if no errors ---
+            if (empty($errors)) {
+                $stmt_insert = $cnn->prepare("INSERT INTO installments (student_id, national_code, debt_title, installment_amount, due_date, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+                if ($stmt_insert === false) {
+                    $errors[] = "خطا در آماده‌سازی دستور پایگاه داده: " . $cnn->error;
+                } else {
+                    $insert_success_all = true;
+                    foreach ($validated_installments as $index => $installment) {
+                        $stmt_insert->bind_param("issds", $student_id, $search_national_code, $debt_title, $installment['amount'], $installment['date']);
+                        if (!$stmt_insert->execute()) {
+                            $errors[] = "خطا در ذخیره‌سازی قسط " . ($index + 1) . ": " . $stmt_insert->error;
+                            $insert_success_all = false;
+                            break; // Stop on first error
+                        }
+                    }
+                    $stmt_insert->close();
+
+                    if ($insert_success_all) {
+                        $success_msg[] = "تقسیط بدهی برای عنوان '" . htmlspecialchars($debt_title) . "' با موفقیت ثبت شد.";
+                        // Clear form data only on complete success
+                        $form_data_to_repopulate = null;
+                        $search_national_code = ''; // Reset search
+                        $student_name = '';
+                        $debt_titles = [];
+                        $has_debt = false;
+                        $student_id = null;
+                        // Consider redirecting here to prevent resubmission on refresh
+                        // header("Location: " . $_SERVER['PHP_SELF'] . "?status=success"); exit;
+                    }
+                }
+            }
+        } // End if empty($errors) initial validation
+
+        // --- Reload student data if errors occurred during submission ---
+         if (!empty($errors) && !empty($search_national_code)) {
+            // Need to reload student name and debt titles to display the form correctly
+             $stmt_reload = $cnn->prepare("SELECT id, first_name, last_name FROM students WHERE national_code = ?");
+             if($stmt_reload){
+                 $stmt_reload->bind_param("s", $search_national_code);
+                 $stmt_reload->execute();
+                 $result_reload = $stmt_reload->get_result();
+                 if ($student_data_reload = $result_reload->fetch_assoc()) {
+                     $student_id = $student_data_reload['id']; // Keep student_id
+                     $student_name = $student_data_reload['first_name'] . ' ' . $student_data_reload['last_name']; // Keep student name
+                     // Reload debt titles
+                     $stmt_debt_reload = $cnn->prepare("SELECT DISTINCT title FROM debts WHERE student_id = ? AND amount > 0 ORDER BY title");
+                     if($stmt_debt_reload){
+                         $stmt_debt_reload->bind_param("i", $student_id);
+                         $stmt_debt_reload->execute();
+                         $debt_result_reload = $stmt_debt_reload->get_result();
+                         $debt_titles = []; // Reset titles before reloading
+                         while ($row_reload = $debt_result_reload->fetch_assoc()) {
+                             $debt_titles[] = $row_reload['title'];
+                         }
+                         $stmt_debt_reload->close();
+                         $has_debt = count($debt_titles) > 0;
+                     } else { $errors[] = "خطا در بارگذاری مجدد عناوین بدهی."; }
+                 } else { $student_name = ''; $has_debt = false; } // Student not found on reload? Unlikely but handle
+                 $stmt_reload->close();
+             } else { $errors[] = "خطا در بارگذاری مجدد اطلاعات دانش آموز."; }
+         }
+
     } // End else if add_taghsit
 } // End POST check
 
 ?>
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="fa"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+    <title>تقسیط بدهی</title>
+    <link rel="stylesheet" href="../assets/vendor/persian-datepicker/dist/css/persian-datepicker.min.css"/>
+    <link rel="stylesheet" href="path/to/your/main/styles.css">
     <style>
-    /* استایل های CSS که در ادامه می آید اینجا قرار می گیرد */
         body {
-            font-family: 'Vazirmatn', sans-serif;
-            direction: rtl; /* اطمینان از راست‌چین بودن کل صفحه */
-            background-color: #f4f7f6; /* یک پس‌زمینه ملایم */
+            direction: rtl;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f6;
             color: #333;
+            font-size: 14px;
             line-height: 1.6;
         }
+
+        .container {
+            width: 95%;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 25px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.1);
+        }
+        .page-title { /* Renamed h1 to a class */
+            color: #333;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.6em;
+        }
+        hr { border: 0; height: 1px; background-color: #ddd; margin: 25px 0; }
+
+        /* --- Forms --- */
+        .search-form-section, .installment-form-section { margin-bottom: 20px; }
+        .jostojo { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .jostojo label { font-weight: bold; margin-left: 5px; flex-shrink: 0; }
+        .searchBy, .input, .select { /* Combined input/select styles */
+            padding: 10px 12px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1em;
+            font-family: inherit;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #fff;
+        }
+        .jostojo .input { flex-grow: 1; min-width: 200px; width: auto; } /* Specific for search input */
+        .input:focus, .select:focus {
+            border-color: #80bdff; outline: 0; box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        .select {
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007bff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
+            background-repeat: no-repeat; background-position: left 10px center; background-size: 10px auto; padding-left: 30px;
+        }
+        .input[type="number"] { width: 80px; flex-grow: 0; } /* Smaller width for number input */
+
+        /* --- Buttons --- */
+        .Button, #submit_btn, #generate_installments_btn, #cancel_btn { /* Apply Button style to existing IDs */
+            padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 1em; font-family: inherit;
+            text-decoration: none; display: inline-flex; align-items: center; justify-content: center;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+            background-color: #007bff; color: white; line-height: 1.5; margin-left: 5px; /* Add some margin */
+        }
+        .Button:hover, #submit_btn:hover, #generate_installments_btn:hover, #cancel_btn:hover { background-color: #0056b3; box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15); }
+        .Button:active, #submit_btn:active, #generate_installments_btn:active, #cancel_btn:active { background-color: #004085; transform: translateY(1px); }
+        #submit_btn[name="search"] { background-color: #17a2b8; } /* Search button color */
+        #submit_btn[name="search"]:hover { background-color: #138496; }
+        #submit_btn[name="add_taghsit"] { background-color: #28a745; } /* Save button color */
+        #submit_btn[name="add_taghsit"]:hover { background-color: #218838; }
+        #cancel_btn { background-color: #dc3545; } /* Cancel button color */
+        #cancel_btn:hover { background-color: #c82333; }
+        #generate_installments_btn { background-color: #ffc107; color: #333; } /* Generate button color */
+        #generate_installments_btn:hover { background-color: #e0a800; }
+        #submit_btn:disabled, #generate_installments_btn:disabled { background-color: #adb5bd; cursor: not-allowed; box-shadow: none; transform: none; }
+
+        /* --- Messages --- */
+        .message-container { margin: 15px 0; }
+        .error-message, .success-message, .info-message {
+            padding: 12px 18px; border-radius: 4px; margin-bottom: 10px; font-size: 0.95em; border: 1px solid transparent;
+        }
+        .error-message { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .success-message { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .info-message { background-color: #d1ecf1; color: #0c5460; border-color: #bee5eb; }
+        .error-container, .success-container, .info-container { padding: 5px; border-radius: 5px; } /* Optional wrapper */
+        .error-container { border: 1px dashed #dc3545; }
+        .success-container { border: 1px dashed #28a745; }
+        .info-container { border: 1px dashed #17a2b8; }
+
+
+        /* --- Installment Form Specific Styles --- */
+        .student-info {
+            background-color: #e9ecef; padding: 10px 15px; border-radius: 4px; margin-bottom: 20px;
+            font-size: 1.05em; border: 1px solid #ced4da;
+        }
+        .student-info label { font-weight: bold; color: #495057; }
+        .student-info span { color: #0056b3; }
+
+        .item { /* Wrapper for main controls */
+            display: flex; flex-wrap: wrap; align-items: center; gap: 15px; margin-bottom: 20px;
+            padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 1px solid #dee2e6;
+        }
+        .item label { margin-left: 5px; font-weight: normal; } /* Labels in item */
+        .item .select, .item .input[type="number"] { width: auto; flex-grow: 1; min-width: 150px; } /* Adjust width */
+         .item #debt_amount_display {
+             font-weight: bold; color: #007bff; background-color: #fff; padding: 5px 10px; border-radius: 4px; border: 1px solid #ccc;
+             min-width: 120px; text-align: center;
+         }
+        .item label input[type="radio"] { margin-left: 3px; vertical-align: middle; }
+
+        /* --- Installment Fields Container --- */
+        #installments_container {
+            margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #fff;
+            display: flex; flex-direction: column; gap: 15px; /* Space between installment groups */
+        }
+        .installment-group {
+            background-color: #f9f9f9; padding: 15px; border-radius: 4px; border: 1px solid #eee;
+            display: flex; flex-direction: column; gap: 10px; /* Space within a group */
+            position: relative; /* For potential absolute positioning inside */
+        }
+         .date-amount { /* Container for number, date, amount */
+             display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+         }
+        .installment-number { font-weight: bold; color: #555; margin-left: 10px; min-width: 50px; }
+         .input-wrapper { /* Wrapper for label + input */
+             display: flex; flex-direction: column; flex-grow: 1; min-width: 180px; /* Allow growth */
+         }
+         .input-wrapper label { font-size: 0.9em; color: #666; margin-bottom: 3px; }
+         .input-wrapper .ghest { /* Style for date and amount inputs */
+             padding: 8px 10px; font-size: 0.95em;
+         }
+         .input-wrapper .amount-input { text-align: left; direction: ltr; } /* Align amount input left */
+         .input-wrapper .amount-input:read-only { background-color: #e9ecef; cursor: not-allowed; }
+
+         /* Delete All Button/Icon */
+         .delete-all-container {
+             display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: #dc3545;
+             font-size: 0.9em; margin-bottom: 10px; border-bottom: 1px dashed #ffb8c1; padding-bottom: 5px;
+             align-self: flex-start; /* Position top-left */
+         }
+         .delete-icon { width: 16px; height: 16px; vertical-align: middle; }
+         .delete-all-container:hover { color: #a71d2a; border-bottom-color: #a71d2a; }
+
+
+        /* --- Installment Summary --- */
+        #installments_summary {
+            margin-top: 15px; padding: 10px 15px; border-radius: 4px; font-weight: bold;
+            border: 1px solid transparent; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+        }
+        #installments_summary.summary-match { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        #installments_summary.summary-mismatch { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        #installments_summary.summary-invalid { background-color: #fff3cd; border-color: #ffeeba; color: #856404; }
+
+
+        /* --- Datepicker Style --- */
+        .pdp-group { z-index: 100; } /* Ensure datepicker appears above other elements */
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 768px) {
+            .container { width: 98%; padding: 15px; }
+            .item { flex-direction: column; align-items: stretch; }
+            .item .select, .item .input[type="number"], .item #debt_amount_display { width: 100%; }
+            .date-amount { flex-direction: column; align-items: stretch; }
+            .input-wrapper { min-width: 100%; }
+        }
+
     </style>
-    <link rel="stylesheet" href="test.css">
 </head>
 <body>
 <div class="container">
-    <h1 id="h1">تقسیط بدهی دانش آموز</h1>
-
-    <form id="searchForm" action="" method="post">
+    <h1 class="page-title">تقسیط بدهی دانش آموز</h1> <form id="searchForm" action="" method="post" class="search-form-section">
         <div class="jostojo">
-            <label id="label" for="national_code">جستجو بر اساس کد ملی:</label>
-            <input class="input" type="text" id="national_code_input" name="national_code" value="<?= htmlspecialchars(convertToPersianNumbers($search_national_code)) ?>" required>
+            <label for="national_code_input">جستجو بر اساس کد ملی:</label> <input class="input" type="text" id="national_code_input" name="national_code" value="<?= htmlspecialchars($search_national_code ? convertToPersianNumbers($search_national_code) : '') ?>" required placeholder="کد ملی را وارد کنید">
             <button id="submit_btn" type="submit" name="search">جستجو</button>
         </div>
     </form>
 
-    <?php if (!empty($errors)): ?>
-        <div class="message-container error-container">
-            <?php foreach ($errors as $error): ?>
-                <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (!empty($success_msg)): ?>
-         <div class="message-container success-container">
-             <div class="success-message"><?php echo htmlspecialchars($success_msg[0]); ?></div>
-        </div>
+    <?php if (!empty($errors) || !empty($success_msg)): ?>
+    <div class="message-container">
+        <?php if (!empty($errors)): ?>
+            <div class="error-container">
+                <?php foreach ($errors as $error): ?>
+                    <div class="error-message"><?= htmlspecialchars($error); ?></div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+        <?php if (!empty($success_msg)): ?>
+            <div class="success-container">
+                <?php foreach ($success_msg as $msg): ?>
+                    <div class="success-message"><?= htmlspecialchars($msg); ?></div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
     <?php endif; ?>
 
 
@@ -248,118 +449,116 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <div class="student-info">
             <label>نام دانش‌آموز:</label>
             <span>&nbsp; <?= htmlspecialchars($student_name) ?> </span>
-             <label style="margin-right: 20px;">کد ملی:</label>
-             <span>&nbsp; <?= htmlspecialchars(convertToPersianNumbers($search_national_code)) ?> </span>
+            <label style="margin-right: 20px;">کد ملی:</label>
+            <span>&nbsp; <?= htmlspecialchars(convertToPersianNumbers($search_national_code)) ?> </span>
         </div>
-
-        <form id="installmentForm" action="" method="post">
+        <hr>
+        <form id="installmentForm" action="" method="post" class="installment-form-section">
             <input type="hidden" name="hidden_national_code" value="<?= htmlspecialchars($search_national_code) ?>">
-             <input type="hidden" name="hidden_student_id" value="<?= htmlspecialchars($student_id) ?>">
+            <input type="hidden" name="hidden_student_id" value="<?= htmlspecialchars($student_id) ?>">
 
             <div class="item">
-                <label id="label" for="debt_title">عنوان بدهی</label>
+                <label for="debt_title">عنوان بدهی:</label>
                 <select class="select" name="debt_title" id="debt_title" required onchange="fetchDebtAmount()">
-                    <option value="">یک گزینه انتخاب کنید</option>
+                    <option value="">-- انتخاب کنید --</option>
                     <?php foreach ($debt_titles as $title): ?>
-                        <?php $selected = (isset($_POST['debt_title']) && $_POST['debt_title'] == $title) ? 'selected' : ''; ?>
-                        <option value="<?= htmlspecialchars($title) ?>" <?= $selected ?>><?= htmlspecialchars($title) ?></option>
+                         <?php $selected_title = ($form_data_to_repopulate['debt_title'] ?? '') === $title ? 'selected' : ''; ?>
+                        <option value="<?= htmlspecialchars($title) ?>" <?= $selected_title ?>><?= htmlspecialchars($title) ?></option>
                     <?php endforeach; ?>
                 </select>
 
                 <label>مبلغ کل بدهی:</label>
-                <span id="debt_amount_display" data-raw-amount="0">&nbsp;لطفا عنوان بدهی را انتخاب کنید&nbsp;</span>
+                <span id="debt_amount_display" data-raw-amount="0">&nbsp;-- عنوان را انتخاب کنید --&nbsp;</span>
 
-                <label id="label">تعداد اقساط:</label>
-                <?php $num_installments_value = $_POST['number_of_installments'] ?? 1; ?>
+                <label for="number_of_installments">تعداد اقساط:</label>
+                <?php $num_installments_value = $form_data_to_repopulate['number_of_installments'] ?? 1; ?>
                 <input type="number" name="number_of_installments" id="number_of_installments" class="input" min="1" value="<?= htmlspecialchars($num_installments_value) ?>">
 
-                <label id="label">نحوه محاسبه مبلغ:</label>
-                 <?php $amount_type_value = $_POST['amount_type'] ?? 'automatic'; ?>
+                <label>محاسبه مبلغ:</label>
+                <?php $amount_type_value = $form_data_to_repopulate['amount_type'] ?? 'automatic'; ?>
                 <label><input type="radio" name="amount_type" value="automatic" <?= ($amount_type_value === 'automatic') ? 'checked' : '' ?> onclick="toggleAmountInputs(false)"> خودکار</label>
                 <label><input type="radio" name="amount_type" value="manual" <?= ($amount_type_value === 'manual') ? 'checked' : '' ?> onclick="toggleAmountInputs(true)"> دستی</label>
 
-                <button id="generate_installments_btn" type="button" onclick="generateInstallmentFields()">ایجاد/بازنشانی فیلدهای قسط</button>
+                <button id="generate_installments_btn" type="button" onclick="generateInstallmentFields()" disabled>ایجاد فیلدهای قسط</button>
             </div>
 
             <div id="installments_container">
                 <?php
-                 // اگر فرم قبلا سابمیت شده (و احتمالا خطا داده)، فیلدهای قبلی را بازسازی کن
-                 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_taghsit']) && !empty($_POST['installment_dates'])) {
+                 // If form was submitted with errors, trigger JS to repopulate fields
+                 if ($form_data_to_repopulate && isset($form_data_to_repopulate['add_taghsit']) && !empty($form_data_to_repopulate['installment_dates'])) {
                      echo '<script>';
                      echo 'document.addEventListener("DOMContentLoaded", function() {';
-                     echo '   generateInstallmentFields();'; // فراخوانی تابع جاوا اسکریپت برای بازسازی
-                     echo '   populateExistingFields(' . json_encode($_POST['installment_dates']) . ', ' . json_encode($_POST['manual_amounts']) . ');';
+                     // Fetch amount first if title was selected
+                     echo '  const initialTitle = document.getElementById("debt_title").value;';
+                     echo '  if (initialTitle) { fetchDebtAmount(); }'; // Fetch amount associated with the title
+                     // Use setTimeout to ensure fetchDebtAmount completes and totalDebtAmount is set
+                     echo '  setTimeout(() => {';
+                     echo '      generateInstallmentFields();'; // Generate fields structure
+                     echo '      populateExistingFields(' . json_encode($form_data_to_repopulate['installment_dates']) . ', ' . json_encode($form_data_to_repopulate['manual_amounts']) . ');'; // Populate with old data
+                     echo '      toggleAmountInputs(' . ($amount_type_value === 'manual' ? 'true' : 'false') . ');'; // Set readonly status correctly
+                     echo '  }, 500);'; // Adjust delay if needed
                      echo '});';
                      echo '</script>';
                  }
                  ?>
             </div>
-            <div id="installments_summary" style="margin-top: 15px; font-weight: bold;"></div>
-
-
-            <button id="submit_btn" type="submit" name="add_taghsit" <?php echo ($student_id && $has_debt) ? '' : 'disabled'; ?>>ثبت تقسیط</button>
-            <button id="cancel_btn" type="button" onclick="window.location.href='../index.php'">انصراف</button>
+            <div id="installments_summary"></div> <div class="form-actions"> <button id="submit_btn" type="submit" name="add_taghsit">ثبت تقسیط</button>
+                <button id="cancel_btn" type="button" onclick="window.location.href='../index.php'">انصراف</button>
+            </div>
         </form>
-    <?php elseif ($student_name && !$has_debt && !empty($errors)): ?>
+
+    <?php elseif (!empty($search_national_code) && $student_name && !$has_debt): ?>
          <div class="message-container info-container">
-            <div class="info-message"><?= $errors[0] // نمایش پیام "هیچ بدهی فعالی یافت نشد" ?></div>
-        </div>
-     <?php elseif (!empty($errors) && empty($student_name)): ?>
-          <div class="message-container error-container">
-             <div class="error-message"><?= $errors[0] // نمایش پیام "دانش آموز یافت نشد" یا "کد ملی وارد کنید" ?></div>
+             <div class="info-message">هیچ بدهی فعالی برای دانش‌آموز <?= htmlspecialchars($student_name) ?> یافت نشد.</div>
+         </div>
+    <?php elseif (!empty($search_national_code) && !$student_name): ?>
+         <div class="message-container error-container">
+             <div class="error-message">دانش‌آموزی با کد ملی <?= htmlspecialchars(convertToPersianNumbers($search_national_code)) ?> یافت نشد.</div>
          </div>
     <?php endif; ?>
 
-</div>
-
-<script src="../assets/js/jquery.js"></script>
-<script src="../PersianDate/dist/persian-date.min.js"></script>
+</div><script src="../assets/js/jquery.js"></script> <script src="../PersianDate/dist/persian-date.min.js"></script>
 <script src="../DatePicker/dist/js/persian-datepicker.min.js"></script>
-<script src="../assets/js/hideMessage.js"></script>
-<script src="../assets/js/ConverterPersianNumbers.js"></script>
+<script src="../assets/js/ConverterPersianNumbers.js"></script> <script>
+let totalDebtAmount = 0; // Global variable for total debt amount
 
-<script>
-let totalDebtAmount = 0; // متغیر گلوبال برای مبلغ کل بدهی
-
-// تابع برای تبدیل اعداد فارسی و عربی به انگلیسی
-function convertToEnglishNumbers(str) {
+// --- Helper JS Functions ---
+function convertToEnglishNumbers(str) { /* ... (implementation from previous code) ... */
     if (!str) return '';
     const persian = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹', '،'];
     const arabic = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩', '٬'];
-    const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '']; // کاما حذف می‌شود
-    str = String(str); // Ensure it's a string
-    // اول کامای انگلیسی را حذف کن
+    const english = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ''];
+    str = String(str);
     str = str.replace(/,/g, '');
-    // بعد کامای فارسی/عربی را حذف و اعداد را تبدیل کن
-    persian.forEach((char, index) => {
-        str = str.replace(new RegExp(char, 'g'), english[index]);
-    });
-     arabic.forEach((char, index) => {
-        str = str.replace(new RegExp(char, 'g'), english[index]);
-    });
+    persian.forEach((char, index) => { str = str.replace(new RegExp(char, 'g'), english[index]); });
+    arabic.forEach((char, index) => { str = str.replace(new RegExp(char, 'g'), english[index]); });
     return str;
 }
-
-
-// تابع برای فرمت‌دهی اعداد با کاما (جداکننده هزارگان)
-function numberWithCommas(x) {
-    // تبدیل ورودی به رشته و حذف کاراکترهای غیرعددی (به جز نقطه اعشار اگر لازم باشد)
+function numberWithCommas(x) { /* ... (implementation from previous code) ... */
+    if (x === null || x === undefined) return '0';
     let parts = String(x).split('.');
     parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     return parts.join('.');
 }
+// Make sure convertToPersianNumbers is defined (either here or in included JS file)
+ function convertToPersianNumbers(input) {
+     if (input === null || input === undefined) return '';
+     const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+     return String(input).replace(/[0-9]/g, function (w) {
+         return persianDigits[parseInt(w)];
+     });
+ }
 
-// تابع برای دریافت مبلغ بدهی با AJAX
-function fetchDebtAmount() {
+
+// --- Main Functions ---
+function fetchDebtAmount() { /* ... (implementation from previous code, ensure it updates totalDebtAmount global variable) ... */
     const debtTitle = document.getElementById('debt_title').value;
-    // کد ملی را از فیلد مخفی یا متغیر اولیه PHP بگیرید
-    const nationalCode = document.querySelector('input[name="hidden_national_code"]')?.value || '<?= htmlspecialchars($search_national_code ?? "") ?>';
+    const nationalCode = document.querySelector('input[name="hidden_national_code"]')?.value || '<?= htmlspecialchars($search_national_code ?? "") ?>'; // Ensure nationalCode is available
     const displaySpan = document.getElementById('debt_amount_display');
     const generateBtn = document.getElementById('generate_installments_btn');
 
-    // پاک کردن فیلدهای قسط و غیرفعال کردن دکمه اگر عنوانی انتخاب نشده
-    if (!debtTitle) {
-        displaySpan.innerHTML = '&nbsp;لطفا عنوان بدهی را انتخاب کنید&nbsp;';
+    if (!debtTitle || !nationalCode) {
+        displaySpan.innerHTML = '&nbsp;-- انتخاب کنید --&nbsp;';
         displaySpan.setAttribute('data-raw-amount', '0');
         totalDebtAmount = 0;
         generateBtn.disabled = true;
@@ -367,36 +566,28 @@ function fetchDebtAmount() {
         return;
     }
 
-    // فعال کردن دکمه و نمایش حالت لودینگ
-    generateBtn.disabled = false;
+    generateBtn.disabled = false; // Enable button once title is selected
     displaySpan.innerHTML = '...درحال بارگذاری';
+    displaySpan.setAttribute('data-raw-amount', '0'); // Reset raw amount
 
     $.ajax({
-        url: 'get_debt_for_taghsit.php', // فایل PHP برای دریافت مبلغ
+        url: 'get_debt_for_taghsit.php',
         type: 'POST',
-        data: {
-            title: debtTitle,
-            national_code: nationalCode
-        },
+        data: { title: debtTitle, national_code: nationalCode },
         success: function(data) {
-            // تبدیل پاسخ به عدد اعشاری
             const amount = parseFloat(data);
             if (!isNaN(amount) && amount > 0) {
-                totalDebtAmount = amount; // ذخیره مبلغ خام
-                // نمایش مبلغ فرمت شده (بدون اعشار یا با دو رقم اعشار اگر لازم است)
-                displaySpan.innerText = convertToPersianNumbers(numberWithCommas(amount.toFixed(0))); // یا toFixed(2)
+                totalDebtAmount = amount; // Update global variable
+                displaySpan.innerText = convertToPersianNumbers(numberWithCommas(amount.toFixed(0)));
                 displaySpan.setAttribute('data-raw-amount', amount);
-                 // به صورت خودکار فیلدها را ایجاد نکنید، اجازه دهید کاربر دکمه را بزند
-                 // generateInstallmentFields();
-                 // فقط فیلدهای قبلی را پاک کنید اگر مبلغ جدیدی لود شد
-                 clearInstallmentFields();
+                clearInstallmentFields(); // Clear old fields when new amount is loaded
             } else {
                 totalDebtAmount = 0;
                 displaySpan.innerText = 'مبلغ یافت نشد';
                 displaySpan.setAttribute('data-raw-amount', '0');
-                generateBtn.disabled = true; // غیرفعال کردن دکمه چون مبلغ معتبر نیست
+                generateBtn.disabled = true;
                 clearInstallmentFields();
-                alert('خطا: مبلغ بدهی برای عنوان انتخاب شده یافت نشد یا معتبر نیست.');
+                alert('خطا: مبلغ بدهی برای عنوان انتخاب شده یافت نشد یا صفر است.');
             }
         },
         error: function() {
@@ -410,35 +601,32 @@ function fetchDebtAmount() {
     });
 }
 
-// تابع برای ایجاد یا بازنشانی فیلدهای قسط
-function generateInstallmentFields() {
+function generateInstallmentFields() { /* ... (exact implementation from previous code, ensure it uses the global totalDebtAmount) ... */
     const container = document.getElementById('installments_container');
     const numberOfInstallments = parseInt(document.getElementById('number_of_installments').value) || 0;
     const isManual = document.querySelector('input[name="amount_type"]:checked').value === 'manual';
 
-    // بررسی مبلغ کل و تعداد اقساط
     if (totalDebtAmount <= 0 || numberOfInstallments <= 0) {
-        clearInstallmentFields(); // پاک کردن فیلدها اگر نامعتبر است
+        clearInstallmentFields();
         if (totalDebtAmount <= 0 && document.getElementById('debt_title').value) {
-             // alert('ابتدا یک عنوان بدهی با مبلغ معتبر انتخاب کنید.'); // پیام می‌تواند آزاردهنده باشد
+            // Maybe show a subtle message instead of alert
         } else if (numberOfInstallments <= 0 && totalDebtAmount > 0) {
              alert('تعداد اقساط باید حداقل ۱ باشد.');
         }
-        return; // خروج از تابع
+        return;
     }
 
-    // پاک کردن فیلدهای قبلی
-    container.innerHTML = '';
+    container.innerHTML = ''; // Clear previous fields
 
-    // اضافه کردن دکمه "حذف همه اقساط"
+    // Add "Delete All" button
     const deleteAllContainer = document.createElement('div');
     deleteAllContainer.title = 'حذف همه اقساط';
     deleteAllContainer.classList.add('delete-all-container');
     deleteAllContainer.innerHTML = '<img src="../images/del-all_icon.png" alt="حذف همه" class="delete-icon"> حذف همه اقساط';
-    deleteAllContainer.onclick = clearInstallmentFields; // تابع پاکسازی را فراخوانی کند
+    deleteAllContainer.onclick = clearInstallmentFields;
     container.appendChild(deleteAllContainer);
 
-    // محاسبه مبلغ هر قسط (گرد کردن به پایین و اضافه کردن باقیمانده به قسط آخر)
+
     let baseInstallmentAmount = Math.floor(totalDebtAmount / numberOfInstallments);
     let remainder = totalDebtAmount - (baseInstallmentAmount * numberOfInstallments);
 
@@ -450,139 +638,121 @@ function generateInstallmentFields() {
         const dateAmountDiv = document.createElement('div');
         dateAmountDiv.classList.add('date-amount');
 
-        // شماره قسط
+        // Installment Number
         const numberLabel = document.createElement('span');
         numberLabel.classList.add('installment-number');
         numberLabel.innerText = `قسط ${convertToPersianNumbers(i + 1)}:`;
         dateAmountDiv.appendChild(numberLabel);
 
-        // --- بلوک تاریخ ---
+        // Date Block
         const dateWrapper = document.createElement('div');
-        dateWrapper.classList.add('input-wrapper'); // **تغییر جدید**
-
+        dateWrapper.classList.add('input-wrapper');
         const labelDate = document.createElement('label');
         labelDate.innerText = `تاریخ:`;
         const inputDate = document.createElement('input');
         inputDate.type = 'text';
         inputDate.name = 'installment_dates[]';
-        inputDate.className = 'ghest date-input'; // کلاس برای Datepicker
+        inputDate.className = 'ghest date-input';
         inputDate.placeholder = 'YYYY/MM/DD';
-        inputDate.autocomplete = 'off'; // جلوگیری از تکمیل خودکار مرورگر
-
+        inputDate.autocomplete = 'off';
         dateWrapper.appendChild(labelDate);
         dateWrapper.appendChild(inputDate);
-        dateAmountDiv.appendChild(dateWrapper); // **تغییر جدید**
+        dateAmountDiv.appendChild(dateWrapper);
 
-        // --- بلوک مبلغ ---
+        // Amount Block
         const amountWrapper = document.createElement('div');
-        amountWrapper.classList.add('input-wrapper'); // **تغییر جدید**
-
+        amountWrapper.classList.add('input-wrapper');
         const labelAmount = document.createElement('label');
         labelAmount.innerText = `مبلغ:`;
         const amountInput = document.createElement('input');
-        amountInput.type = 'text'; // نوع text برای نمایش بهتر فارسی و کاما
+        amountInput.type = 'text';
         amountInput.name = 'manual_amounts[]';
         amountInput.className = 'ghest amount-input';
         amountInput.placeholder = 'مبلغ قسط';
-        amountInput.inputMode = 'numeric'; // کمک به نمایش کیبورد عددی در موبایل (اگرچه هدف دسکتاپ است)
-        amountInput.readOnly = !isManual; // فقط در حالت دستی قابل ویرایش
+        amountInput.inputMode = 'numeric';
+        amountInput.readOnly = !isManual;
 
         let currentInstallmentAmount = baseInstallmentAmount;
-        // اضافه کردن باقیمانده به قسط آخر
         if (i === numberOfInstallments - 1) {
             currentInstallmentAmount += remainder;
         }
+        amountInput.value = convertToPersianNumbers(numberWithCommas(currentInstallmentAmount.toFixed(0)));
 
-        // مقداردهی اولیه مبلغ (نمایش فرمت شده فارسی)
-        amountInput.value = convertToPersianNumbers(numberWithCommas(currentInstallmentAmount.toFixed(0))); // نمایش بدون اعشار
-
-        // رویدادها برای فیلد مبلغ
+        // Event Listeners for Amount Input
         amountInput.addEventListener('input', function() {
             const englishValue = convertToEnglishNumbers(this.value);
             const numericValue = parseFloat(englishValue) || 0;
-            // نمایش فرمت شده فارسی در اینپوت همزمان با تایپ
             this.value = convertToPersianNumbers(numberWithCommas(numericValue.toFixed(0)));
-            if (isManual) {
-                updateInstallmentSummary(); // به‌روزرسانی خلاصه فقط اگر دستی است
-            }
+            if (isManual) updateInstallmentSummary();
         });
         amountInput.addEventListener('focus', function() {
             if (!this.readOnly) {
-                // هنگام فوکوس، عدد انگلیسی و بدون کاما نمایش داده شود (برای ویرایش راحت)
                 this.value = convertToEnglishNumbers(this.value);
-                 this.select(); // انتخاب کل متن برای جایگزینی آسان
+                 this.select();
             }
         });
         amountInput.addEventListener('blur', function() {
             if (!this.readOnly) {
-                // هنگام خروج از فوکوس، دوباره فرمت فارسی با کاما اعمال شود
                 const englishValue = convertToEnglishNumbers(this.value);
                 const numericValue = parseFloat(englishValue) || 0;
                 this.value = convertToPersianNumbers(numberWithCommas(numericValue.toFixed(0)));
-                if (isManual) {
-                    updateInstallmentSummary(); // بروزرسانی مجدد خلاصه
-                }
+                if (isManual) updateInstallmentSummary();
             }
         });
 
         amountWrapper.appendChild(labelAmount);
         amountWrapper.appendChild(amountInput);
-        dateAmountDiv.appendChild(amountWrapper); // **تغییر جدید**
+        dateAmountDiv.appendChild(amountWrapper);
 
         installmentDiv.appendChild(dateAmountDiv);
         container.appendChild(installmentDiv);
 
-        // فعال‌سازی Datepicker برای فیلد تاریخ با تنظیمات مناسب
+        // Initialize Datepicker
         $(inputDate).pDatepicker({
-            format: 'YYYY/MM/DD',
-            autoClose: true,
-            initialValue: false,
-            position: "auto",
-            calendarType: "persian",
-            observer: true, // مهم برای المان‌های داینامیک
-            inputDelay: 400, // کمی تاخیر برای جلوگیری از باز شدن‌های ناخواسته
+            format: 'YYYY/MM/DD', autoClose: true, initialValue: false, position: "auto",
+            calendarType: "persian", observer: true, inputDelay: 400,
             calendar: { persian: { locale: 'fa' } },
-            toolbox: {
-                enabled: true,
-                calendarSwitch: { enabled: false },
-                todayButton: { enabled: true, text: { fa: 'امروز' } },
-                submitButton: { enabled: false },
-                // clearButton: { enabled: true, text: { fa: 'پاک' } } // فعال کردن دکمه پاک کردن (اختیاری)
-            }
+            toolbox: { enabled: true, calendarSwitch: { enabled: false }, todayButton: { enabled: true, text: { fa: 'امروز' } }, submitButton: { enabled: false } }
         });
     }
-    // به‌روزرسانی خلاصه مجموع پس از ایجاد تمام فیلدها
-    updateInstallmentSummary();
+    updateInstallmentSummary(); // Update summary after generation
 }
 
-// تابع برای پاک کردن فیلدهای قسط و خلاصه
-function clearInstallmentFields() {
+function clearInstallmentFields() { /* ... (implementation from previous code) ... */
     document.getElementById('installments_container').innerHTML = '';
     document.getElementById('installments_summary').innerHTML = '';
-    // همچنین کلاس‌های وضعیت را از خلاصه پاک کنید
-    document.getElementById('installments_summary').classList.remove('summary-match', 'summary-mismatch', 'summary-invalid');
+    document.getElementById('installments_summary').className = ''; // Reset summary classes
 }
 
-// تابع برای تغییر وضعیت ورودی‌های مبلغ (خواندنی/قابل ویرایش)
-// با توجه به CSS جدید، این تابع فقط فیلدها را بازنشانی می‌کند
-function toggleAmountInputs(isManual) {
-    // بهترین کار بازنشانی کامل فیلدهاست تا مقادیر پیش‌فرض درست محاسبه شوند
-    generateInstallmentFields();
+function toggleAmountInputs(isManual) { /* ... (implementation from previous code - just calls generateInstallmentFields) ... */
+     // Find all amount inputs and set readonly property
+     const amountInputs = document.querySelectorAll('#installments_container .amount-input');
+     amountInputs.forEach(input => {
+         input.readOnly = !isManual;
+         // Optional: Add/remove a class for visual styling if needed
+         if (isManual) {
+             input.classList.remove('readonly-amount');
+         } else {
+             input.classList.add('readonly-amount');
+         }
+     });
+     // If switching back to automatic, regenerate fields to reset amounts
+     if (!isManual) {
+         generateInstallmentFields();
+     } else {
+         updateInstallmentSummary(); // Update summary when switching to manual
+     }
 }
 
-// تابع برای محاسبه و نمایش مجموع مبالغ وارد شده و مقایسه با کل بدهی
-function updateInstallmentSummary() {
+function updateInstallmentSummary() { /* ... (implementation from previous code - uses global totalDebtAmount) ... */
     const summaryDiv = document.getElementById('installments_summary');
     const amountInputs = document.querySelectorAll('#installments_container .amount-input');
     const isManual = document.querySelector('input[name="amount_type"]:checked').value === 'manual';
 
-    summaryDiv.innerHTML = ''; // پاک کردن محتوای قبلی
-    // پاک کردن کلاس‌های وضعیت قبلی **تغییر جدید**
-    summaryDiv.classList.remove('summary-match', 'summary-mismatch', 'summary-invalid');
+    summaryDiv.innerHTML = '';
+    summaryDiv.className = ''; // Reset classes
 
-    if (amountInputs.length === 0) {
-        return; // اگر قسطی وجود ندارد، خارج شو
-    }
+    if (amountInputs.length === 0) return;
 
     let currentTotal = 0;
     let hasInvalidAmount = false;
@@ -590,10 +760,8 @@ function updateInstallmentSummary() {
     amountInputs.forEach(input => {
         const englishValue = convertToEnglishNumbers(input.value);
         const numericValue = parseFloat(englishValue);
-        if (isNaN(numericValue) || numericValue < 0) {
-            hasInvalidAmount = true; // علامت‌گذاری در صورت وجود مقدار نامعتبر
-        }
-        currentTotal += numericValue || 0; // اگر NaN بود، 0 جمع کن
+        if (isNaN(numericValue) || numericValue < 0) hasInvalidAmount = true;
+        currentTotal += numericValue || 0;
     });
 
     const totalAmountPersian = convertToPersianNumbers(numberWithCommas(currentTotal.toFixed(0)));
@@ -601,127 +769,137 @@ function updateInstallmentSummary() {
     const difference = currentTotal - totalDebtAmount;
     const differencePersian = convertToPersianNumbers(numberWithCommas(Math.abs(difference).toFixed(0)));
 
-    // متن اصلی خلاصه
-    let summaryText = `مجموع مبالغ اقساط: ${totalAmountPersian}`;
-    if (isManual) { // فقط در حالت دستی، کل بدهی را هم نشان بده
-        summaryText += ` (کل بدهی: ${totalDebtPersian})`;
-    }
-    summaryDiv.innerHTML = `<span>${summaryText}</span>`; // نمایش متن اصلی
+    let summaryText = `مجموع اقساط: ${totalAmountPersian}`;
+    if (isManual) summaryText += ` (کل بدهی: ${totalDebtPersian})`;
+    summaryDiv.innerHTML = `<span>${summaryText}</span>`;
 
     let differenceText = '';
-    // اضافه کردن پیام وضعیت فقط در حالت دستی
     if (isManual) {
         if (hasInvalidAmount) {
-            differenceText = `<span style="color: #d35400;">حداقل یک مبلغ نامعتبر است.</span>`; // استفاده از استایل داخلی برای این پیام خاص
-            summaryDiv.classList.add('summary-invalid'); // **تغییر جدید**
-        } else if (Math.abs(difference) > 0.01) { // مقایسه با تلورانس کم
+            differenceText = `<span style="color: #d35400;">مبلغ نامعتبر وجود دارد.</span>`;
+            summaryDiv.classList.add('summary-invalid');
+        } else if (Math.abs(difference) > 0.01) {
             const diffType = difference > 0 ? 'بیشتر' : 'کمتر';
-            differenceText = `<span>مبلغ ${differencePersian} ${diffType} از کل بدهی است!</span>`;
-            summaryDiv.classList.add('summary-mismatch'); // **تغییر جدید**
+            differenceText = `<span>( ${differencePersian} تومان ${diffType} )</span>`;
+            summaryDiv.classList.add('summary-mismatch');
         } else {
-            differenceText = `<span>مجموع مبالغ با کل بدهی مطابقت دارد.</span>`;
-            summaryDiv.classList.add('summary-match'); // **تغییر جدید**
+            differenceText = `<span>( مطابقت دارد )</span>`;
+            summaryDiv.classList.add('summary-match');
         }
-        summaryDiv.innerHTML += differenceText; // اضافه کردن پیام وضعیت
+        summaryDiv.innerHTML += differenceText;
     } else {
-         // در حالت خودکار، فقط مجموع را نشان می‌دهیم و فرض می‌کنیم درست است
-         summaryDiv.classList.add('summary-match'); // می‌توان کلاس مطابقت را اضافه کرد
+         summaryDiv.classList.add('summary-match'); // Assume match in auto mode
     }
 }
 
-
-// تابع کمکی برای تبدیل رشته تاریخ جلالی به فرمتی که setDate ممکن است بفهمد (نیاز به تست)
-// یا صرفاً برای استفاده در موارد دیگر
-function parseJalaliDate(jalaliString) {
-    // فرض فرمت YYYY/MM/DD
-    const parts = String(jalaliString).split('/');
-    if (parts.length === 3) {
-        const year = parseInt(parts[0], 10);
-        const month = parseInt(parts[1], 10);
-        const day = parseInt(parts[2], 10);
-        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-             // pDatepicker ممکن است آرایه [y, m, d] را بفهمد
-             // return [year, month, day];
-             // یا ممکن است نیاز به timestamp میلی‌ثانیه داشته باشد
-             // یا فقط رشته اصلی را برگردانیم
-            return jalaliString; // در حال حاضر رشته را برمی‌گردانیم
-        }
-    }
-    return null; // فرمت نامعتبر
-}
-
-// تابع برای بازگرداندن مقادیر قبلی در صورت خطا در سمت سرور
-// (این تابع باید بعد از generateInstallmentFields فراخوانی شود)
+// --- Function to repopulate fields after server-side error ---
 function populateExistingFields(dates, amounts) {
+    console.log("Populating fields with:", dates, amounts);
     const dateInputs = document.querySelectorAll('#installments_container .date-input');
     const amountInputs = document.querySelectorAll('#installments_container .amount-input');
     const isManual = document.querySelector('input[name="amount_type"]:checked').value === 'manual';
 
+    if (dateInputs.length !== dates.length || amountInputs.length !== amounts.length) {
+        console.error("Mismatch between expected fields and provided data for repopulation.");
+        return;
+    }
+
     dates.forEach((date, index) => {
-        if (dateInputs[index] && date) {
-            // بهترین روش تنظیم مقدار ورودی و اجازه دادن به Datepicker برای خواندن آن است
-            dateInputs[index].value = date;
-             // فعال‌سازی مجدد یا آپدیت Datepicker ممکن است لازم باشد اگر observer کار نکند
-             // $(dateInputs[index]).pDatepicker('update');
+        if (dateInputs[index]) {
+            dateInputs[index].value = date; // Set the date value
+             // Optional: Re-initialize datepicker if needed, though observer should handle it
+             // $(dateInputs[index]).pDatepicker('setDate', parseJalaliDate(date)); // Might need parseJalaliDate function
         }
     });
 
     amounts.forEach((amount, index) => {
-        if (amountInputs[index] && amount !== null && amount !== undefined) {
-            const englishValue = convertToEnglishNumbers(String(amount));
+        if (amountInputs[index]) {
+            const englishValue = convertToEnglishNumbers(amount);
             const numericValue = parseFloat(englishValue) || 0;
+            // Set the formatted Persian value for display
             amountInputs[index].value = convertToPersianNumbers(numberWithCommas(numericValue.toFixed(0)));
-            // وضعیت readOnly قبلاً در generateInstallmentFields تنظیم شده است
-            // amountInputs[index].readOnly = !isManual;
+            amountInputs[index].readOnly = !isManual; // Ensure readonly state is correct
         }
     });
-    // به‌روزرسانی خلاصه پس از پر کردن مقادیر
-    updateInstallmentSummary();
+
+    updateInstallmentSummary(); // Update summary after populating
 }
 
 
-// اجرای اولیه هنگام بارگذاری صفحه
+// --- Initial Setup ---
 $(document).ready(function() {
-    // کد ملی اولیه از PHP (اگر وجود داشته باشد)
-    const initialNationalCode = '<?= htmlspecialchars($search_national_code ?? "") ?>';
-
-    // اگر کد ملی از قبل وجود دارد (مثلا بعد از جستجو یا خطا در ثبت)
-    if (initialNationalCode) {
-        // تبدیل کد ملی در فیلد جستجو به فارسی
-        const nationalCodeInput = document.getElementById('national_code_input');
-        if(nationalCodeInput) {
-            nationalCodeInput.value = convertToPersianNumbers(initialNationalCode);
-        }
-
-        // اگر عنوان بدهی از قبل انتخاب شده (مثلا بعد از خطا)
-        const selectedDebtTitle = document.getElementById('debt_title').value;
-        if (selectedDebtTitle) {
-            fetchDebtAmount(); // دریافت مبلغ برای عنوان انتخاب شده
-            // توجه: فیلدهای قسط توسط کد PHP که populateExistingFields را صدا می‌زند بازسازی می‌شوند
-        } else {
-            // اگر عنوانی انتخاب نشده، دکمه ایجاد قسط غیرفعال باشد
-            $('#generate_installments_btn').prop('disabled', true);
-        }
+    // Trigger fetchDebtAmount if a title is already selected on page load (e.g., after POST error)
+    const initialTitle = $('#debt_title').val();
+    if (initialTitle) {
+        fetchDebtAmount();
     } else {
-        // اگر کد ملی وجود ندارد (بار اول)، دکمه ایجاد قسط غیرفعال باشد
-        $('#generate_installments_btn').prop('disabled', true);
+         // Disable generate button if no title selected initially
+         $('#generate_installments_btn').prop('disabled', true);
     }
 
-    // مخفی کردن پیام‌های سرور بعد از چند ثانیه (اگر تابعش موجود باشد)
-    if (typeof hideMessages === 'function') {
-        hideMessages(7000); // مثلا بعد از ۷ ثانیه
-    }
+     // Add event listener to number of installments input to potentially clear fields
+     $('#number_of_installments').on('change', function() {
+         // Optional: You might want to clear or regenerate fields if the number changes
+         // For now, we rely on the user clicking the "Generate" button again
+         // clearInstallmentFields();
+     });
 
-    // اطمینان از آپدیت خلاصه هنگام تغییر تعداد اقساط یا نوع مبلغ
-    $('#number_of_installments').on('change', generateInstallmentFields);
-    $('input[name="amount_type"]').on('change', function() {
-        toggleAmountInputs(this.value === 'manual');
-    });
-     // هنگام تغییر عنوان بدهی هم خلاصه آپدیت شود (بعد از fetch)
-     // این کار داخل fetchDebtAmount انجام می‌شود با clearInstallmentFields
+     // Add validation before submitting the main form
+      $('#installmentForm').on('submit', function(e) {
+          const summaryDiv = document.getElementById('installments_summary');
+          const isManual = document.querySelector('input[name="amount_type"]:checked').value === 'manual';
+          const hasInstallments = document.querySelectorAll('#installments_container .installment-group').length > 0;
+
+           if (!hasInstallments) {
+               alert('لطفاً ابتدا فیلدهای اقساط را با کلیک روی دکمه "ایجاد فیلدهای قسط" ایجاد کنید.');
+               e.preventDefault();
+               return false;
+           }
+
+           // Check for empty dates
+           const dateInputs = document.querySelectorAll('#installments_container .date-input');
+           let hasEmptyDate = false;
+           dateInputs.forEach(input => {
+               if (!input.value.trim()) {
+                   hasEmptyDate = true;
+               }
+           });
+           if (hasEmptyDate) {
+               alert('لطفاً تاریخ تمام اقساط را مشخص کنید.');
+               e.preventDefault();
+               return false;
+           }
+
+
+          if (isManual && (summaryDiv.classList.contains('summary-mismatch') || summaryDiv.classList.contains('summary-invalid'))) {
+              if (!confirm('مجموع مبالغ اقساط با کل بدهی مطابقت ندارد یا مبلغ نامعتبر وجود دارد. آیا مطمئن به ثبت هستید؟')) {
+                  e.preventDefault(); // Prevent form submission
+                  return false;
+              }
+          }
+          // Convert amounts to English numbers before submitting
+           const amountInputs = document.querySelectorAll('#installments_container .amount-input');
+           amountInputs.forEach(input => {
+               input.value = convertToEnglishNumbers(input.value);
+           });
+
+
+          return true; // Allow form submission
+      });
 
 });
+
 </script>
+
+</body>
+</html>
 <?php
-include "../footer.php";
+// Close the database connection if it was opened
+if (isset($cnn) && $cnn) {
+    $cnn->close();
+}
+// Include footer if it exists
+if (file_exists($basePath . "footer.php")) {
+    include $basePath . "footer.php";
+}
 ?>

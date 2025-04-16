@@ -146,25 +146,25 @@ tbody tr.highlight {
 
 /* Style specific buttons */
 .reset-button {
-    background-color: #6c757d; /* خاکستری */
+    background-color: #6c757d; 
 }
 .reset-button:hover {
     background-color: #5a6268;
 }
 .pdf-button {
-    background-color: #dc3545; /* قرمز */
+    background-color: #dc3545; 
 }
 .pdf-button:hover {
     background-color: #c82333;
 }
 .excel-button {
-    background-color: #28a745; /* سبز */
+    background-color: #28a745; 
 }
 .excel-button:hover {
     background-color: #218838;
 }
 .search-button {
-    background-color: #17a2b8; /* آبی فیروزه‌ای */
+    background-color: #17a2b8;
 }
 .search-button:hover {
     background-color: #138496;
@@ -237,9 +237,6 @@ tbody tr.highlight {
         justify-content: center;
     }
     th, td {
-        padding: 8px 10px; /* پدینگ کمتر */
-    }
-    table, thead, tbody, th, td, tr {
-        /* ممکن است نیاز باشد جدول را اسکرول پذیر کنید یا نمایش آن را تغییر دهید */
+        padding: 8px 10px; 
     }
 }
