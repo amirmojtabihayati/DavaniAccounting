@@ -205,7 +205,7 @@ $writer = new Xlsx($spreadsheet);
 
 // نام فایل منحصر به فرد
 $timestamp = date('Ymd_His');
-$filename = "student_debts_{$timestamp}.xlsx";
+$filename = "بدهی دانش آموزان_{$timestamp}.xlsx";
 
 // تنظیم هدرها برای دانلود فایل Excel
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

@@ -213,7 +213,7 @@ $cnn->close();
 // --- خروجی PDF ---
 // نام فایل منحصر به فرد
 $timestamp = date('Ymd_His');
-$filename = "student_debts_{$timestamp}.pdf";
+$filename = "بدهی دانش آموزان_{$timestamp}.pdf";
 
 // خروجی مستقیم به مرورگر برای دانلود
 $pdf->Output($filename, 'D'); // D: Force Download
