@@ -279,7 +279,7 @@ $cnn->close();
                     <button type="submit" class="btn btn-primary me-2">                        <i class="bi bi-plus-circle-fill me-1"></i>
                         افزودن
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="window.location.href='../Home.php'">
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='StudentsList.php'">
                         <i class="bi bi-x-circle-fill me-1"></i>
                         انصراف
                     </button>

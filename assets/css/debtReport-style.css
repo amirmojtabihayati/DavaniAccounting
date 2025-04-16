@@ -1,0 +1,245 @@
+/* --- General Styles --- */
+body {
+    font-family: 'Vazirmatn', 'Tahoma', sans-serif; /* فونت وزیرمتن یا تاهوما */
+    direction: rtl; /* راست به چپ */
+    margin: 0;
+    padding: 0;
+    background-color: #f4f7f6; /* رنگ پس زمینه ملایم */
+    color: #333;
+}
+
+.container-kol {
+    width: 95%;
+    max-width: 1200px; /* حداکثر عرض */
+    margin: 20px auto; /* وسط چین کردن */
+    padding: 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* --- Table Styles --- */
+table {
+    width: 100%;
+    border-collapse: collapse; /* حذف فاصله بین سلول ها */
+    margin-bottom: 20px;
+    font-size: 14px;
+    border: 1px solid #ddd; /* یک حاشیه کلی برای جدول */
+}
+
+thead {
+    background-color: #007bff; /* رنگ آبی برای سربرگ */
+    color: #fff; /* رنگ متن سفید */
+}
+
+th, td {
+    padding: 12px 15px; /* پدینگ داخلی سلول ها */
+    text-align: right; /* تراز راست چین */
+    border-bottom: 1px solid #ddd; /* خط جداکننده افقی */
+    border-left: 1px solid #ddd; /* خط جداکننده عمودی (اختیاری) */
+}
+th:last-child, td:last-child {
+     border-left: none; /* حذف خط عمودی برای آخرین ستون */
+}
+
+tbody tr:nth-child(even) {
+    background-color: #f9f9f9; /* رنگ راه راه برای خوانایی بهتر */
+}
+
+tbody tr:hover {
+    background-color: #e9ecef; /* رنگ هاور */
+    cursor: default; /* تغییر نشانگر موس */
+}
+
+/* هایلایت کردن ردیف انتخاب شده */
+tbody tr.highlight {
+    background-color: #cce5ff; /* رنگ آبی روشن */
+    font-weight: bold;
+}
+
+.no-results, .error-message, .loading-message {
+    text-align: center;
+    padding: 20px;
+    color: #777;
+    font-style: italic;
+}
+.error-message {
+    color: #dc3545; /* رنگ قرمز برای خطا */
+    font-weight: bold;
+}
+
+/* --- Icon Style --- */
+.icon-details {
+    fill: #007bff; /* رنگ آیکون */
+    vertical-align: middle; /* تراز عمودی */
+    transition: fill 0.2s ease;
+}
+.details-link:hover .icon-details {
+    fill: #0056b3; /* رنگ آیکون در حالت هاور */
+}
+
+
+/* --- Controls Section (Search Form and Pagination) --- */
+.controls-section {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    display: flex; /* استفاده از Flexbox برای چیدمان */
+    flex-direction: column; /* چیدمان عمودی */
+    gap: 15px; /* فاصله بین بخش جستجو و پیمایش */
+}
+
+.jostojo {
+    /* Flexbox برای مرتب کردن آیتم های فرم */
+    display: flex;
+    flex-wrap: wrap; /* اجازه شکستن خط در صفحه های کوچک */
+    align-items: center; /* تراز عمودی آیتم ها */
+    gap: 10px; /* فاصله بین آیتم های فرم */
+}
+
+.jostojo label {
+    font-weight: bold;
+    margin-left: 5px;
+}
+
+.searchBy {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    flex-grow: 1; /* اجازه رشد به فیلدها برای پر کردن فضا */
+    min-width: 120px; /* حداقل عرض */
+}
+
+.searchBy:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+
+/* --- Button Styles --- */
+.Button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-family: inherit; /* ارث بری فونت */
+    text-decoration: none; /* حذف خط زیر لینک ها در دکمه های a */
+    display: inline-flex; /* برای تراز بهتر آیکون و متن (اگر لازم باشد) */
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #007bff; /* رنگ اصلی دکمه */
+    color: white;
+}
+.Button:hover {
+    background-color: #0056b3; /* رنگ هاور */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+.Button:active {
+     background-color: #004085; /* رنگ موقع کلیک */
+}
+
+/* Style specific buttons */
+.reset-button {
+    background-color: #6c757d; /* خاکستری */
+}
+.reset-button:hover {
+    background-color: #5a6268;
+}
+.pdf-button {
+    background-color: #dc3545; /* قرمز */
+}
+.pdf-button:hover {
+    background-color: #c82333;
+}
+.excel-button {
+    background-color: #28a745; /* سبز */
+}
+.excel-button:hover {
+    background-color: #218838;
+}
+.search-button {
+    background-color: #17a2b8; /* آبی فیروزه‌ای */
+}
+.search-button:hover {
+    background-color: #138496;
+}
+
+
+/* --- Pagination Styles --- */
+.pagination-nav {
+    display: flex;
+    justify-content: center; /* وسط چین کردن آیتم ها */
+    align-items: center;
+    gap: 8px; /* فاصله بین دکمه ها و متن */
+    margin-top: 10px; /* کمی فاصله از فرم جستجو */
+    flex-wrap: wrap; /* شکستن خط در صورت نیاز */
+}
+.pagination-nav .page-info {
+    font-weight: bold;
+    padding: 5px 10px;
+    background-color: #e9ecef;
+    border-radius: 4px;
+}
+.pagination-nav .Button {
+    min-width: 35px; /* حداقل عرض برای دکمه های صفحه */
+    padding: 6px 10px; /* پدینگ کمتر برای دکمه های صفحه */
+}
+.pagination-nav .disabled {
+    background-color: #adb5bd; /* رنگ دکمه غیرفعال */
+    cursor: not-allowed;
+    color: #6c757d;
+    box-shadow: none;
+}
+.pagination-nav .disabled:hover {
+    background-color: #adb5bd; /* عدم تغییر رنگ در هاور */
+}
+.total-results {
+    margin-left: 15px; /* فاصله از دکمه ها */
+    font-size: 13px;
+    color: #555;
+}
+/* --- Summary Section --- */
+.summary-section {
+    padding: 10px;
+    margin-bottom: 15px;
+    text-align: center;
+    font-size: 1.1em;
+    background-color: #eef;
+    border-radius: 5px;
+}
+.summary-section hr {
+    border: 0;
+    border-top: 1px solid #ccc;
+    margin-top: 10px;
+}
+
+
+/* --- Responsive Adjustments (Example) --- */
+@media (max-width: 768px) {
+    .jostojo {
+        flex-direction: column; /* چیدمان عمودی فرم در صفحه کوچک */
+        align-items: stretch; /* کشیدن آیتم ها به عرض کامل */
+    }
+    .searchBy {
+        width: 100%; /* عرض کامل فیلدها */
+        box-sizing: border-box; /* محاسبه پدینگ و بوردر در عرض */
+    }
+    .controls-section {
+        flex-direction: column;
+    }
+    .pagination-nav {
+        justify-content: center;
+    }
+    th, td {
+        padding: 8px 10px; /* پدینگ کمتر */
+    }
+    table, thead, tbody, th, td, tr {
+        /* ممکن است نیاز باشد جدول را اسکرول پذیر کنید یا نمایش آن را تغییر دهید */
+    }
+}
