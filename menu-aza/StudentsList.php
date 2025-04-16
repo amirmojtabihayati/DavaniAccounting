@@ -130,8 +130,7 @@ $result = $stmt->get_result();
                 <table class="table table-hover table-striped">
                     <thead class="table-dark">
                     <tr>
-                        <th>نام</th>
-                        <th>نام خانوادگی</th>
+                        <th>نام و نام خانوادگی</th>
                         <th>کد ملی</th>
                         <th>رشته</th>
                         <th>پایه</th>
@@ -142,9 +141,8 @@ $result = $stmt->get_result();
                     <?php if ($result->num_rows > 0): ?>
                         <?php while ($row = $result->fetch_assoc()): ?>
                             <tr class="align-middle">
-                                <td><?= htmlspecialchars($row['first_name']) ?></td>
-                                <td><?= htmlspecialchars($row['last_name']) ?></td>
-                                <td dir="ltr"><?= convertToPersianNumbers($row['national_code']) ?></td>
+                                <td><?= htmlspecialchars($row['first_name'] . ' ' .$row['last_name']) ?></td>
+                                <td><?= convertToPersianNumbers($row['national_code']) ?></td>
                                 <td><span class="badge bg-info"><?= $row['field'] ?></span></td>
                                 <td><span class="badge bg-success"><?= $row['grade'] ?></span></td>                                <td class="text-center">
                                     <div class="btn-group">
