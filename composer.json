@@ -1,0 +1,7 @@
+{
+    "require": {
+        "morilog/jalali": "3.*",
+        "mpdf/mpdf": "^8.2",
+        "tecnickcom/tcpdf": "^6.9"
+    }
+}

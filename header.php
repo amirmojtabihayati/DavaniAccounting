@@ -65,7 +65,7 @@ $css_mapping = [
     'debtsDetail.php' => 'debts.css',
     'add_debt.php' => 'debts.css',
     'add_payment.php' => 'debts.css',
-    'taghsit.php' => 'form.css',
+    'taghsit.php' => 'taghsit-style.css',
     'takhfif.php' => 'form.css', // اضافه شد
     // صفحات دیگر را اضافه کنید
     'Home.php' => 'home-style.css', // مثال
@@ -104,12 +104,14 @@ if (in_array($current_dir, ['menu-aza'])) {
 ?>
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>سامانه مدیریت دانش آموزان</title>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>سامانه مدیریت دانش آموزان</title>
+        
+        <meta name="description" content="سامانه مدیریت یکپارچه آموزشگاه"/>
 
-    <meta name="description" content="سامانه مدیریت یکپارچه آموزشگاه"/>
+    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
 
     <script src="<?php echo SITE_ASSETS; ?>/vendor/PersianDate/dist/persian-date.min.js"></script>
     <script src="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/dist/js/persian-datepicker.min.js"></script>
@@ -127,8 +129,6 @@ if (in_array($current_dir, ['menu-aza'])) {
         <?php if ($datepicker_css): ?>
             <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/vendor/persian-datepicker/dist/css/persian-datepicker.min.css"> <?php endif; ?>
             <link rel="stylesheet" href="<?php echo SITE_ASSETS; ?>/css/header-nav.css">
-
-    <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
 </head>
 <body>
 
